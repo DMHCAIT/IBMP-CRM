@@ -1,0 +1,101 @@
+id,fullName,email,phone,status_grouped,ml_score,hybrid_score,ai_score,conversion_probability,ai_segment,next_action,priority_score
+86706441-2b72-4686-bac1-0f9938395560,Neelam Hanif,hanifneelam@gmail.com,+255686150600,Unknown,84.7,84.3,84.3,0.843,Hot,Call within 15 minutes,99.3
+cc313988-f20b-4d79-ae09-42ab783c04c4,SONIKA DEVI,ABC2@GMAIL.COM,+917002290598,Unknown,87.0,83.5,83.5,0.835,Hot,Call within 15 minutes,98.5
+528d95e0-d9c6-4e00-9199-02c3fc2341cd,Dr Ankur Diwan,steppslittle@gmail.com,9915236057,Unknown,87.6,78.3,78.3,0.7829999999999999,Warm,Schedule follow-up within 24 hours,93.3
+5e3168d7-0ef3-4953-94bb-5669a4c70778,Rakesh Kumar Garg,amberbiotech1@yahoo.com,9810191988,Unknown,87.4,78.2,78.2,0.782,Warm,Schedule follow-up within 24 hours,93.2
+15bf042a-2e85-4ae4-9aa6-50a7c860bf20,Shams,azadshams018@gmail.com,+919576909150,Unknown,86.9,77.8,77.8,0.778,Warm,Schedule follow-up within 24 hours,92.8
+3da50e31-eae9-4ff6-a204-6cac70d44476,Deepak,Deepakdr@gmail.com,98861 08847,Unknown,88.5,77.8,77.8,0.778,Warm,Schedule follow-up within 24 hours,92.8
+26313c0c-dcbe-4cbf-8b67-1e1ee49bcce4,Abdus Salam,salamuroctg@yahoo.com,+8801819344900,Unknown,87.0,77.5,77.5,0.775,Warm,Schedule follow-up within 24 hours,92.5
+485275f3-2c54-49a5-8cea-1ea08f83ec2a,Mohd Haseeb,MohdHaseeb@gmail.com,9179932132,Unknown,89.1,77.4,77.4,0.774,Warm,Schedule follow-up within 24 hours,92.4
+7075c978-ad51-44b0-aa5d-6d1667000d28,Dr sagar Ahlawat,sagarAhlawat@gmail.com,86858 62510,Unknown,85.6,76.9,76.9,0.769,Warm,Schedule follow-up within 24 hours,91.9
+81d9414c-32f7-47b8-a2e0-5decf198ce2d,adithya_reddy_04,reddy.adtiya@yahoo.com,+918008500196,Unknown,86.3,76.6,76.6,0.7659999999999999,Warm,Schedule follow-up within 24 hours,91.6
+f8c865ef-c6b6-4a9f-b7f7-7b2a1df56995,Prisiila Parveen,prisila.parvin.sifa@gmail.com,+8801798250508,Unknown,85.0,76.5,76.5,0.765,Warm,Schedule follow-up within 24 hours,91.5
+cb1eaa43-21cd-4bd3-adcd-08fa47455eb4,Sawana Khan,sawanakhan0307@gmail.com,+919131903507,Unknown,84.8,76.0,76.0,0.76,Warm,Schedule follow-up within 24 hours,91.0
+324cf854-1ea1-4838-af82-8debf33babed,Supraja Bhagavatula,aa36@gmail.com,918499954004.00,Unknown,87.0,80.9,80.9,0.809,Hot,Call within 15 minutes,90.9
+6182376d-3f48-43a6-b813-cf45aa011755,Aarthi Ram,arthi@gmail.com,+918778618643,Unknown,84.7,80.9,80.9,0.809,Hot,Call within 15 minutes,90.9
+2447a031-0f32-4838-a00a-111f32646c6c,Arshad Hussain,arshadbeigh@yahoo.com,919419960096.00,Unknown,84.4,75.1,75.1,0.7509999999999999,Warm,Schedule follow-up within 24 hours,90.1
+fe5d36ec-b706-4c40-91f6-dcc7212efd91,dr hemali sharma,docsh9@gmail.com,+917066044154,Unknown,84.4,80.1,80.1,0.8009999999999999,Hot,Call within 15 minutes,90.1
+cf07585d-0e87-46fd-b2e0-7ab4ccde2d87,Dr Arya s kumar,aryananth2017@gamil.com,7907030284.00,Unknown,82.5,74.8,74.8,0.748,Warm,Schedule follow-up within 24 hours,89.8
+666824ae-7206-4a21-9417-9c1b81fcd701,Bhushanpatil,bgawande80@gmail.com,+917588252246,Unknown,84.1,79.7,79.7,0.797,Warm,Schedule follow-up within 24 hours,89.7
+cfc423eb-b6fd-46e7-9c94-9a8ea8189d69,Zeba Iqbal,zebaiqb@googlemail.com,97477601806,Unknown,85.8,74.7,74.7,0.747,Warm,Schedule follow-up within 24 hours,89.7
+81c7eee6-63e9-4915-be42-8b24b17a1517,Manisha,mannu5695gokavarapu@gmail.com,918328339215,Unknown,84.7,74.3,74.3,0.743,Warm,Schedule follow-up within 24 hours,89.3
+8d45fe26-c7ae-465b-9380-3b5d748d510b,Dr Mohdhaseen Saifi,mohdhaseensaifi80@gmail.com,+918218365106,Unknown,84.4,74.1,74.1,0.741,Warm,Schedule follow-up within 24 hours,89.1
+b7efcb3c-cb7a-4851-84a7-427744432a65,T�b�y�,tabiyakhatoon@gmail.com,9661798627,Unknown,84.6,74.0,74.0,0.74,Warm,Schedule follow-up within 24 hours,89.0
+14725fec-29e0-4cb7-918c-0bdc0afd16f7,????? ???? ?????,zainab.amira.315@gmail.com,+918874913547,Unknown,84.1,73.3,73.3,0.733,Warm,Schedule follow-up within 24 hours,88.3
+4dc2dc63-a3e0-4d94-91c4-82b9e8c77bb2,Rahul Solanki,solankirahul1297@gmail.co,+918719879815,Unknown,84.1,78.3,78.3,0.7829999999999999,Warm,Schedule follow-up within 24 hours,88.3
+feb0cfde-f584-488e-a507-2d781c20397b,DrNarendra Goswami,Drnarendra49@gmail.com,919925858484.00,Unknown,83.4,78.0,78.0,0.78,Warm,Schedule follow-up within 24 hours,88.0
+56ce1ad0-0044-40ac-b436-78eeef535cce,Devika,19devika96@gmail.com,+918281300319,Unknown,83.8,72.5,72.5,0.725,Warm,Schedule follow-up within 24 hours,87.5
+b8ec1ac6-61b0-4072-bf29-67ed3a59c8c1,Sadiq Ali,sadiqali7417764399@gmail.com,+919068863353,Unknown,85.0,82.5,82.5,0.825,Hot,Call within 15 minutes,87.5
+d562870d-3136-4f5d-b639-6a4c00505659,sahabuddin,sahabuddinmahamad@gmail.com,+9779815211421,Unknown,83.8,81.7,81.7,0.8170000000000001,Hot,Call within 15 minutes,86.7
+6c2d4ed6-d575-4be4-aa7b-89a842bc95e2,Dr Hina ,hina1@gmail.com,9326389569,Unknown,81.9,76.5,76.5,0.765,Warm,Schedule follow-up within 24 hours,86.5
+1d6a3b34-1b1a-424d-a05a-6e41d091e3d4,Neha Shrivastava,neha.shrivastav90@gmail.com,9950995171,Unknown,78.9,76.2,76.2,0.762,Warm,Schedule follow-up within 24 hours,86.2
+088484ac-3c80-4c03-82b8-c7f53604cff3,Md.Sageer Ali Anjum,sageer1@gmail.com,917280841562,Unknown,83.6,81.1,81.1,0.8109999999999999,Hot,Call within 15 minutes,86.1
+3c6c53ba-9030-41fb-a616-f47d52c281b9,Dr Meer Bilal,email19@gmail.com,917006870797.00,Unknown,86.2,75.5,75.5,0.755,Warm,Schedule follow-up within 24 hours,85.5
+1c9702c2-cab8-4e8c-80e2-e93585bd0666,Dr. Ankur Kumar,krdrankur11@gmail.com,918433408134,Unknown,85.3,74.5,74.5,0.745,Warm,Schedule follow-up within 24 hours,84.5
+ce4c736f-877f-4465-90c2-cd89162b58ee,Kritika,Drkritikasharma6@gmail.com,+917838130183,Unknown,86.7,74.3,74.3,0.743,Warm,Schedule follow-up within 24 hours,84.3
+b7f1b4c8-e166-4ac3-a69c-f0a9da9f3b50,আব্দুল্যাহ আল মাসুম,mehehashe@gmail.com,+8801775011610,Unknown,83.5,79.0,79.0,0.79,Warm,Schedule follow-up within 24 hours,84.0
+f28d254d-bf6b-46a0-9d7c-7e08d8102694,Dr. Ninad Jayprakash Gor,ninad.3012@gmail.com,+919712470200,Unknown,85.5,73.8,73.8,0.738,Warm,Schedule follow-up within 24 hours,83.8
+068968ef-8f17-4628-b3a5-225a1e8d011f,"Blaise Beni, MD",No2@gmail.com,250788525785.00,Unknown,87.6,73.7,73.7,0.737,Warm,Schedule follow-up within 24 hours,83.7
+921c21fe-49a2-44a7-8a48-104e99ecd342,DrMohammed Alduhais,dralduhais@gmail.com,967777176577,Unknown,85.7,73.6,73.6,0.736,Warm,Schedule follow-up within 24 hours,83.6
+13601945-df74-47ac-9fb3-85ef51316f9b,Risa,risaraveendrann@gmail.com,+918593045478,Unknown,85.0,73.5,73.5,0.735,Warm,Schedule follow-up within 24 hours,83.5
+c348cf75-9be5-40d9-8f20-bb5d8c771927,Dr.RohitYadav,ry0016700@gmail.com,+918295959202,Unknown,83.1,78.4,78.4,0.784,Warm,Schedule follow-up within 24 hours,83.4
+c3835709-f1c1-42e5-88e1-1f77f8f7ab3b,Chandra,ch@gmail.com,+919603725998,Unknown,87.7,73.4,73.4,0.7340000000000001,Warm,Schedule follow-up within 24 hours,83.4
+df9df37e-f00e-4374-8bd0-23176c97aa3e,Sara Khawer,dr_khawer_saleem@yahoo.com,+971504680689,Unknown,84.7,73.3,73.3,0.733,Warm,Schedule follow-up within 24 hours,83.3
+5f8dbd38-9931-40f6-b441-732d69672c00,Dr vinod kumar,Vinodavk9@gmail.com,9700330320,Unknown,86.9,73.2,73.2,0.732,Warm,Schedule follow-up within 24 hours,83.2
+78248769-5720-4e26-9136-bec62b58cf4a,ronak patidar,ronakpatidar1233@gmail.com,+918452965208,Unknown,85.7,73.2,73.2,0.732,Warm,Schedule follow-up within 24 hours,83.2
+177a3b3a-a24a-4d97-b3d8-264cbd4e5565,Dr Hasibur Rahman,dr_cosmoderma@yahoo.com,8801711318709,Unknown,87.3,73.1,73.1,0.731,Warm,Schedule follow-up within 24 hours,83.1
+4be576b5-8577-47cc-8eeb-021b2e49d778,Chhabindra Gaire,chhabindra2017@gmail.com,+9779851161800,Unknown,84.4,73.1,73.1,0.731,Warm,Schedule follow-up within 24 hours,83.1
+7105df07-e66b-4714-b294-efd2899f0ccf,swati Yashwant Poinkar,Swatipoinkar79@gmail.com,+919604398088,Unknown,86.1,73.1,73.1,0.731,Warm,Schedule follow-up within 24 hours,83.1
+91b97c1d-a420-4ee5-ba43-e5a9d26ac15b,Vijay Kumar Pandey,vpandey0495@gmail.com,+919794874401,Unknown,84.4,73.1,73.1,0.731,Warm,Schedule follow-up within 24 hours,83.1
+f7e45c4c-6bf4-4d14-a85d-e5a6b0191581,Dr Sakib ,sakib@gmail.com,+8801712147111,Unknown,87.3,73.1,73.1,0.731,Warm,Schedule follow-up within 24 hours,83.1
+6f0d4163-029e-4c27-9121-20a24a86524e,lissom yette Dieudonne,Somyede@yahoo.co.uk,+447949721667,Unknown,86.6,73.0,73.0,0.73,Warm,Schedule follow-up within 24 hours,83.0
+048e0734-0791-447d-b42c-78be26d028ba,Dr Shailendra Paswan,dr.shailendrapas@gmail.com,+9779849808644,Unknown,84.1,72.9,72.9,0.7290000000000001,Warm,Schedule follow-up within 24 hours,82.9
+27c910ca-f75c-4db9-a666-379ff74d242b,HHH HAY,email9@gmail.com,213661714315.00,Unknown,87.0,72.9,72.9,0.7290000000000001,Warm,Schedule follow-up within 24 hours,82.9
+461478f8-836c-461b-9c9d-749ce12f08a8,Dr prateek,prateek789@gmail.com,+919662921902,Unknown,88.5,77.8,77.8,0.778,Warm,Schedule follow-up within 24 hours,82.8
+490b8516-c688-45a4-b9e8-8ef1b126ece0,Dr Vishal Raj,Vishalrajorahfc01@gmail.com,7303353447,Unknown,86.3,72.8,72.8,0.728,Warm,Schedule follow-up within 24 hours,82.8
+88de9b9c-fb3e-4c16-b886-54469d4a6f6e,Saurabh Yadav,saurabh33322@gmail.com,917900955272,Unknown,84.6,67.8,67.8,0.6779999999999999,Warm,Schedule follow-up within 24 hours,82.8
+dc6b4a92-59f9-41fb-8b21-572b30b09488,Dr nighat Syed,drnighatsyed11@gmail.com,+919906595337,Unknown,86.3,72.8,72.8,0.728,Warm,Schedule follow-up within 24 hours,82.8
+385bbae9-5992-4957-8fbb-2adb607ab967,Thamani Cosmetics,mubaarakah123@gmail.com,+233558433835,Unknown,86.1,72.7,72.7,0.727,Warm,Schedule follow-up within 24 hours,82.7
+a51339c7-f889-4a8f-aa7b-c54fbfcffef7,Dr Chandresh saran,DrChandreshsaran1236@gmail.com,8171147471,Unknown,86.6,72.6,72.6,0.726,Warm,Schedule follow-up within 24 hours,82.6
+09602c8b-559a-43db-98c7-0bcf1177ca9a,J VENKATESULU,vesu1011@gmail.com,9704853855,Unknown,84.7,72.5,72.5,0.725,Warm,Schedule follow-up within 24 hours,82.5
+8c00f4ca-684a-4de7-bef4-7b606a58e86d,NUX CHIZZY ,ABD44@GMAIL.COM,+61+2347060711762,Unknown,87.0,72.5,72.5,0.725,Warm,Schedule follow-up within 24 hours,82.5
+669a0a18-be72-4a0e-b56f-7501208f1019,dr harshprajapati96,no6@gmail.com,917984433067.00,Unknown,86.9,72.4,72.4,0.7240000000000001,Warm,Schedule follow-up within 24 hours,82.4
+b06430d2-d6e0-492c-bb2f-3c1e387ec03d,Dr. Rahman Ghaffarzadekan Rabati,dr.rahman.ghaffarzadegan@gmail.com,998948805472,Unknown,86.6,72.4,72.4,0.7240000000000001,Warm,Schedule follow-up within 24 hours,82.4
+03089da7-2505-44c4-99ad-f7e19b644333,Priya Gidla,sushmagidla.dr@gmail.com,+918309584662,Unknown,84.4,72.3,72.3,0.723,Warm,Schedule follow-up within 24 hours,82.3
+e2fa6783-6d68-42e4-b7e3-a3c680541916,Maryam Alhakim,orejwan_2012@hotmail.com,966534715299,Unknown,87.0,72.3,72.3,0.723,Warm,Schedule follow-up within 24 hours,82.3
+f864972f-6aa6-4322-8f05-12ec48a6d92e,Nazan shaguft aimam,Nazan@gmail.com,+919667872188,Unknown,83.0,72.1,72.1,0.721,Warm,Schedule follow-up within 24 hours,82.1
+1e7338c9-88dd-4864-a39c-4c9a6df0e134,Samih mohammed Ahammed  Alqassim,samihalqassim@gmail.com,+967717205458,Unknown,84.5,72.0,72.0,0.72,Warm,Schedule follow-up within 24 hours,82.0
+0a1ca8f0-55b4-43ed-b23d-dfbe9347d48c,Sumitha Muthukrishnan,drsumitha11@gmail.com,+94774444114,Unknown,83.8,71.9,71.9,0.7190000000000001,Warm,Schedule follow-up within 24 hours,81.9
+40616349-c5e4-4446-b531-89408f7cec08,Shashikant,shashikantstudent@gmail.com,+919507280692,Unknown,84.1,66.9,66.9,0.669,Warm,Schedule follow-up within 24 hours,81.9
+7ab1cae5-6f9b-4a60-85bd-3d3eba1f7054,Dr. Tanaya,rajetanaya@gmail.com,+918600625797,Unknown,84.4,71.9,71.9,0.7190000000000001,Warm,Schedule follow-up within 24 hours,81.9
+9f208525-787e-4854-a265-99421297016c,Dr Amit mishra,Docamitcool@gmail.com,8517827245,Unknown,86.1,71.9,71.9,0.7190000000000001,Warm,Schedule follow-up within 24 hours,81.9
+fe263ff3-9c1a-4086-8ed3-b2832afea681,Abshar akhtar,absharkhan95@gmail.com,+918651414715,Unknown,85.0,71.5,71.5,0.715,Warm,Schedule follow-up within 24 hours,81.5
+c88e29e6-0d3c-4d2b-87b8-5579047a028f,Nishat Yasmeen  Ahmed,jrehan_2@hotmail.com,+966507344029,Unknown,84.9,71.4,71.4,0.7140000000000001,Warm,Schedule follow-up within 24 hours,81.4
+1905a753-a242-4010-bba6-1dde5ae7de7c,Sam L ,Sam@gmail.com,8415001647,Unknown,84.1,71.3,71.3,0.713,Warm,Schedule follow-up within 24 hours,81.3
+217f9ad6-cd39-4184-a7ff-f6f85599e0c6,Dr Mekkaoui Alaoui Mariame,mmekkaoui.alaoui@yahoo.com,642046314,Unknown,85.2,71.2,71.2,0.7120000000000001,Warm,Schedule follow-up within 24 hours,81.2
+90513e55-db25-4bb8-8b80-079395867ea7,Safwan Shaikh,safwan.shaikh@hotmail.com,+971505561429,Unknown,84.5,71.2,71.2,0.7120000000000001,Warm,Schedule follow-up within 24 hours,81.2
+01ec7b16-9033-49f6-b055-95fe2d10d496,Dr k h d  Milroy,khdmilroy@gmail.com,+94777713748,Unknown,86.1,76.1,76.1,0.7609999999999999,Warm,Schedule follow-up within 24 hours,81.1
+a2924c9b-6456-4fae-994a-9ec3e574db50,Kumara De Silva,supkde@yahoo.com,+94714400878,Unknown,83.8,71.1,71.1,0.711,Warm,Schedule follow-up within 24 hours,81.1
+aa6660f9-13c2-4cbf-a717-7044a7ef3521,Subramanyamgari praveen kumar,9849351152s@gmail.com,919182198080.00,Unknown,82.2,71.1,71.1,0.711,Warm,Schedule follow-up within 24 hours,81.1
+beb7f114-72b3-4a38-8c7e-208bfb1c2bc6,Aprajita Biswas,aprajitabiswas18@gmail.com,7985565769.00,Unknown,85.4,71.0,71.0,0.71,Warm,Schedule follow-up within 24 hours,81.0
+4129965b-c6b0-4c32-835a-7afca6503044,Prasenjit Paul,psudip98@yahoo.in,+917890074268,Unknown,85.3,70.9,70.9,0.7090000000000001,Warm,Schedule follow-up within 24 hours,80.9
+ef134a4a-6c9a-4a11-9f4e-0596c8ac6c73,Dr Om Prakash Gautam,opgautam6@gmail.com,+919424970201,Unknown,84.5,70.8,70.8,0.708,Warm,Schedule follow-up within 24 hours,80.8
+518be683-1cc5-40c1-9f35-df54eb2208c5,Rajiv Jaiswal,rajjas20046@gmail.com,9779849821444,Unknown,83.8,70.7,70.7,0.7070000000000001,Warm,Schedule follow-up within 24 hours,80.7
+f687181d-53f2-44b2-ad32-2a6202dbc164,Fatema,fatemaparpia@hotmail.com,+255686778733,Unknown,86.7,75.7,75.7,0.757,Warm,Schedule follow-up within 24 hours,80.7
+17ca1d86-906e-4157-8f5d-769dee76fc6a,Maher Sharba,Sharba.maher@gmail.com,+966552422251,Unknown,85.4,75.6,75.6,0.7559999999999999,Warm,Schedule follow-up within 24 hours,80.6
+60837dc1-e7b2-4580-a327-e37248a8952e,.....,Yesno @gmail.com,919850897484.00,Unknown,86.0,80.6,80.6,0.8059999999999999,Hot,Call within 15 minutes,80.6
+685e2f01-27ae-4748-aefe-39e6ee285e80,(Dr. JK) Dr.Jamshed khan,khan.jamshed6@ymail.com,919416392854,Unknown,85.5,80.6,80.6,0.8059999999999999,Hot,Call within 15 minutes,80.6
+10d67d51-fab0-4ab3-81d5-5938011b28f8,Dr Anurag,eror@gmail.com,+917009898048,Unknown,86.1,75.3,75.3,0.753,Warm,Schedule follow-up within 24 hours,80.3
+e8eae705-e025-4aa1-846d-eb59fd2c5946,dr vikas sachan ,vikas12125@gmail.com,+918800641662,Unknown,84.7,70.3,70.3,0.703,Warm,Schedule follow-up within 24 hours,80.3
+ffee9dce-772d-48ec-a8a1-acc391b28d1d,Augustino George Lukinga,agulukinga2000@gmail.com,+255692179272,Unknown,86.1,80.3,80.3,0.8029999999999999,Hot,Call within 15 minutes,80.3
+4d86751a-33da-412a-b1d9-7fc0a614fa48,Sushmita,sushmitadas777111@gmail.com,+8801938541942,Unknown,84.3,70.2,70.2,0.7020000000000001,Warm,Schedule follow-up within 24 hours,80.2
+96840e69-18e2-492f-bb77-0bb60db0506a,Md Ali,mdaliakbarraeen2018@gmail.com,Unknown,Unknown,84.3,70.2,70.2,0.7020000000000001,Warm,Schedule follow-up within 24 hours,80.2
+081e3edf-fbad-4346-970e-1153c32cc97e,Dr. Hetal Chaudhary,hetalchaudhary207@gmail.com,+919904944149,Unknown,84.1,70.1,70.1,0.701,Warm,Schedule follow-up within 24 hours,80.1
+1c475da2-b2d1-4528-bd48-97934a402540,Dr. Manoj Manohar,manojmanohar2011@gmail.com,9500458227,Unknown,83.0,70.1,70.1,0.701,Warm,Schedule follow-up within 24 hours,80.1
+597e2154-47b3-443a-a3e8-bd9ec69586cd,Dr venna Venkata Radhagopal ( 8096174288),radhagopal1363@gmail.com,9908382714,Unknown,87.6,75.1,75.1,0.7509999999999999,Warm,Schedule follow-up within 24 hours,80.1
+14679672-3916-4744-b305-0ae72f2189e4,Rohit Jadhav,rohitjadhav057355@gmail.com,918600962305.00,Unknown,85.2,80.0,80.0,0.8,Hot,Call within 15 minutes,80.0
+2c88fa6e-878a-4fec-b0cb-6ada0df1c0dc,Amit G.,rambo20202022@gmail.com,919015214366,Unknown,84.5,80.0,80.0,0.8,Hot,Call within 15 minutes,80.0
+1405cbf0-c77e-4c4d-9aa2-4d7404e90ef7,Randhir Singh,randhir361.rm@icloud.com,9781672397.00,Unknown,82.1,69.9,69.9,0.6990000000000001,Warm,Schedule follow-up within 24 hours,79.9
+56253acb-2e95-471a-9e92-ad6fc102da18,Dr Sanjay Mitiram Khillare,drsanjaykhillare10@gmail.com,9403331111,Unknown,83.1,69.8,69.8,0.698,Warm,Schedule follow-up within 24 hours,79.8
+5ad3ce9e-0633-4fcc-b2f7-de8ef4f173e0,???????? ??????????????,saraaharmain@gmail.com,+918971302528,Unknown,86.6,74.8,74.8,0.748,Warm,Schedule follow-up within 24 hours,79.8
+c8ded885-370b-4b1a-8539-b37fcb91e0db,Vijay Sah,vijaysah111@yahoo.com,+9779819663999,Unknown,83.1,69.8,69.8,0.698,Warm,Schedule follow-up within 24 hours,79.8

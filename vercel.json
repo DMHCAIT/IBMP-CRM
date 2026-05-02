@@ -1,0 +1,14 @@
+{
+  "buildCommand": "cd lead-ai/crm/frontend && npm run build",
+  "outputDirectory": "lead-ai/crm/frontend/build",
+  "installCommand": "cd lead-ai/crm/frontend && npm install",
+  "devCommand": "cd lead-ai/crm/frontend && npm start",
+  "framework": null,
+  "rewrites": [
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
+  ]
+}
+

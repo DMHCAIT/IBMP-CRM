@@ -1,0 +1,54 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+venv/
+env/
+.venv/
+*.egg-info/
+
+# Google Sheets Credentials - NEVER commit
+google-credentials.json
+**/google-credentials.json
+
+# Environment secrets — NEVER commit
+lead-ai/crm/backend/.env
+
+# Keep example/render env files
+!lead-ai/crm/backend/.env.example
+!lead-ai/crm/backend/.env.render
+
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+
+# ML models (large binary files)
+lead-ai/crm/backend/*.cbm
+lead-ai/crm/backend/models/
+
+# Node
+node_modules/
+lead-ai/crm/frontend/node_modules/
+
+# React build
+lead-ai/crm/frontend/build/
+
+# Logs
+*.log
+logs/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# Contains real credentials — keep local only
+lead-ai/crm/backend/.env.render
+
+# Claude Code local settings
+.claude/
