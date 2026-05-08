@@ -531,6 +531,15 @@ class SupabaseDataLayer:
             logger.error(f"Error updating user: {e}")
             return None
 
+    def delete_user(self, user_id: int) -> bool:
+        """Delete user by ID"""
+        try:
+            self.client.table('users').delete().eq('id', user_id).execute()
+            return True
+        except Exception as e:
+            logger.error(f"Error deleting user {user_id}: {e}")
+            return False
+
 
 # Global instance
 supabase_data = SupabaseDataLayer()
