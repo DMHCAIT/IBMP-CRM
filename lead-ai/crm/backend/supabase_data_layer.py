@@ -327,7 +327,7 @@ class SupabaseDataLayer:
     def get_all_users(self) -> List[Dict[str, Any]]:
         """Get all users"""
         try:
-            response = self.client.table('users').select("*").order('id', desc=False).execute()
+            response = self.client.table('users').select("id,full_name,email,phone,role,reports_to,is_active,created_at,updated_at").order('id', desc=False).execute()
             return response.data if response.data else []
         except Exception as e:
             logger.error(f"Error fetching users: {e}")
@@ -507,7 +507,7 @@ class SupabaseDataLayer:
     def get_user_by_id(self, user_id: int) -> Optional[Dict[str, Any]]:
         """Get user by numeric ID"""
         try:
-            response = self.client.table('users').select('*').eq('id', user_id).limit(1).execute()
+            response = self.client.table('users').select('id,full_name,email,phone,role,reports_to,is_active,created_at,updated_at').eq('id', user_id).limit(1).execute()
             return response.data[0] if response.data else None
         except Exception as e:
             logger.error(f"Error getting user by ID: {e}")

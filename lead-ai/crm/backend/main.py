@@ -3362,13 +3362,17 @@ async def get_counselor_performance():
 # USER MANAGEMENT ENDPOINTS
 # ============================================================================
 
-@app.get("/api/users")
+@app.get("/api/users", response_model=List[UserResponse])
 async def get_users():
     """Get all users in the organization"""
     
     try:
         users = supabase_data.get_all_users()
-        return users
+        # Strip password field before returning
+        return [
+            {k: v for k, v in u.items() if k != "password"} if isinstance(u, dict) else u
+            for u in (users or [])
+        ]
     except Exception as e:
         logger.error(f"Error fetching users: {e}")
         return []
