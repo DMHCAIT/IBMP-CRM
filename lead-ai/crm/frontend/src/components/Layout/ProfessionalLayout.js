@@ -154,7 +154,7 @@ const ProfessionalLayout = ({ children }) => {
   const location = useLocation();
   const queryClient = useQueryClient();
 
-  const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
+  const currentUser = JSON.parse(localStorage.getItem('crm_user') || '{}');
   const initials = currentUser.full_name
     ? currentUser.full_name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()
     : 'U';

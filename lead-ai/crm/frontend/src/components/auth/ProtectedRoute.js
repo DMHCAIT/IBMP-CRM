@@ -3,7 +3,7 @@ import { Navigate } from 'react-router-dom';
 import { canAccessRoute } from '../../config/rbac';
 
 const ProtectedRoute = ({ children, route }) => {
-  const user = JSON.parse(localStorage.getItem('user') || '{}');
+  const user = JSON.parse(localStorage.getItem('crm_user') || '{}');
   const userRole = user.role;
 
   if (!userRole) {

@@ -43,7 +43,7 @@ const SmartNotifications = () => {
     const base = (process.env.REACT_APP_API_URL || 'http://localhost:8000')
       .replace('https://', 'wss://')
       .replace('http://', 'ws://');
-    const token = JSON.parse(localStorage.getItem('user') || '{}')?.token;
+    const token = JSON.parse(localStorage.getItem('crm_user') || '{}')?.token;
     const ws = new WebSocket(`${base}/ws/notifications?token=${token}`);
 
     ws.onmessage = (event) => {

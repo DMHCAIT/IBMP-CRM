@@ -180,7 +180,7 @@ export default function ChatDrawer({ lead, onClose }) {
     setText('');
     setSending(true);
     try {
-      const user = JSON.parse(localStorage.getItem('user') || '{}');
+      const user = JSON.parse(localStorage.getItem('crm_user') || '{}');
       const res = await leadsAPI.sendChatMessage(lead.id, {
         message: body,
         msg_type: 'text',
@@ -219,7 +219,7 @@ export default function ChatDrawer({ lead, onClose }) {
       else if (content_type?.startsWith('video/')) msg_type = 'video';
       else if (content_type?.startsWith('audio/')) msg_type = 'audio';
 
-      const user = JSON.parse(localStorage.getItem('user') || '{}');
+      const user = JSON.parse(localStorage.getItem('crm_user') || '{}');
       const res = await leadsAPI.sendChatMessage(lead.id, {
         msg_type,
         media_url: url,

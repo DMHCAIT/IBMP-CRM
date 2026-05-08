@@ -3,6 +3,8 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ConfigProvider } from 'antd';
 import ProfessionalLayout from './components/Layout/ProfessionalLayout';
+import LoginPage from './pages/LoginPage';
+import { useAuth } from './context/AuthContext';
 // Lazy-loaded pages — each becomes its own JS chunk (code splitting)
 const RoleBasedDashboard  = lazy(() => import('./pages/RoleBasedDashboard'));
 const LeadsPageEnhanced   = lazy(() => import('./pages/LeadsPageEnhanced'));
@@ -58,19 +60,27 @@ function PageLoader() {
   );
 }
 
+function RequireAuth({ children }) {
+  const { isAuthenticated } = useAuth();
+  return isAuthenticated ? children : <Navigate to="/login" replace />;
+}
+
 function AppRoutes() {
+  const { isAuthenticated } = useAuth();
   return (
     <Router>
       <Routes>
-        {/* All routes - no authentication required */}
+        {/* Public login route */}
+        <Route path="/login" element={isAuthenticated ? <Navigate to="/dashboard" replace /> : <LoginPage />} />
+        {/* All protected routes */}
         <Route
           path="/*"
           element={
-            <ProfessionalLayout>
-              <Suspense fallback={<PageLoader />}>
-                <Routes>
-                  <Route path="/" element={<Navigate to="/dashboard" replace />} />
-                  <Route path="/login" element={<Navigate to="/dashboard" replace />} />
+            <RequireAuth>
+              <ProfessionalLayout>
+                <Suspense fallback={<PageLoader />}>
+                  <Routes>
+                    <Route path="/" element={<Navigate to="/dashboard" replace />} />
                   <Route path="/dashboard" element={<RoleBasedDashboard />} />
                   <Route path="/followups" element={<FollowupTodayPage />} />
                   <Route path="/leads" element={<LeadsPageEnhanced />} />
@@ -93,9 +103,10 @@ function AppRoutes() {
                   <Route path="/sla" element={<SLAPage />} />
                   <Route path="/score-decay" element={<ScoreDecayPage />} />
                   <Route path="/settings" element={<SettingsPage />} />
-                </Routes>
-              </Suspense>
-            </ProfessionalLayout>
+                  </Routes>
+                </Suspense>
+              </ProfessionalLayout>
+            </RequireAuth>
           }
         />
       </Routes>

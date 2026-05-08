@@ -50,7 +50,7 @@ function QuickActionModal({ lead, open, onClose, onDone }) {
 
   const addNoteMutation = useMutation({
     mutationFn: ({ leadId, content }) =>
-      leadsAPI.addNote(leadId, { content, channel: 'call', created_by: JSON.parse(localStorage.getItem('user') || '{}').full_name || 'CRM' }),
+      leadsAPI.addNote(leadId, { content, channel: 'call', created_by: JSON.parse(localStorage.getItem('crm_user') || '{}').full_name || 'CRM' }),
   });
 
   const handleSave = async () => {
@@ -275,7 +275,7 @@ export default function FollowupTodayPage() {
   const [chatLead, setChatLead]         = useState(null);
   const queryClient                     = useQueryClient();
 
-  const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
+  const currentUser = JSON.parse(localStorage.getItem('crm_user') || '{}');
   const isAdmin     = ['Super Admin', 'Manager', 'Team Leader'].includes(currentUser.role);
 
   const { data: usersData = {} } = useQuery({

@@ -333,7 +333,7 @@ const ProfessionalDashboard = () => {
 };
 
 const ProfessionalDashboardWithPerformance = (props) => {
-  const user = JSON.parse(localStorage.getItem('user') || '{}');
+  const user = JSON.parse(localStorage.getItem('crm_user') || '{}');
   const showTeam = ['Super Admin', 'Manager', 'Team Leader'].includes(user.role);
   return (
     <>

@@ -28,7 +28,7 @@ const CallInterface = ({ visible, onClose, lead }) => {
   // Initiate call mutation — uses centralized api (handles auth + 401 redirect)
   const initiateCallMutation = useMutation({
     mutationFn: async () => {
-      const user = JSON.parse(localStorage.getItem('user') || '{}');
+      const user = JSON.parse(localStorage.getItem('crm_user') || '{}');
       const res = await api.post('/api/communications/call/initiate', {
         lead_id: lead.lead_id,
         to_number: lead.phone,

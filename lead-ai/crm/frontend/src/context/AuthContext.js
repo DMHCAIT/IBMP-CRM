@@ -1,47 +1,30 @@
 /**
- * AuthContext — Auto-logged in as Admin (no authentication required)
+ * AuthContext — Real JWT authentication
  */
 
 import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
 
 const AuthContext = createContext(null);
 
-const STORAGE_KEY = 'user';
-
-// Default admin user (no login required)
-const DEFAULT_USER = {
-  id: 1,
-  email: 'admin@demo-crm.com',
-  full_name: 'Super Admin',
-  role: 'Super Admin',
-  token: 'auto-login-token'
-};
+const STORAGE_KEY = 'crm_user';
 
 function loadStoredUser() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    return raw ? JSON.parse(raw) : DEFAULT_USER;
+    return raw ? JSON.parse(raw) : null;
   } catch {
-    return DEFAULT_USER;
+    return null;
   }
 }
 
 export function AuthProvider({ children }) {
-  const [user, setUser] = useState(() => {
-    const stored = loadStoredUser();
-    // Always ensure we have a user (auto-login)
-    if (!stored) {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(DEFAULT_USER));
-      return DEFAULT_USER;
-    }
-    return stored;
-  });
+  const [user, setUser] = useState(() => loadStoredUser());
 
-  // Sync across browser tabs
+  // Sync logout across browser tabs
   useEffect(() => {
     function onStorage(e) {
       if (e.key === STORAGE_KEY) {
-        setUser(e.newValue ? JSON.parse(e.newValue) : DEFAULT_USER);
+        setUser(e.newValue ? JSON.parse(e.newValue) : null);
       }
     }
     window.addEventListener('storage', onStorage);
@@ -54,12 +37,12 @@ export function AuthProvider({ children }) {
   }, []);
 
   const logout = useCallback(() => {
-    // Do nothing - login is disabled
-    console.log('Logout disabled - authentication removed');
+    localStorage.removeItem(STORAGE_KEY);
+    setUser(null);
   }, []);
 
   return (
-    <AuthContext.Provider value={{ user, login, logout, isAuthenticated: true }}>
+    <AuthContext.Provider value={{ user, login, logout, isAuthenticated: !!user }}>
       {children}
     </AuthContext.Provider>
   );

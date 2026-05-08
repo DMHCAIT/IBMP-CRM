@@ -53,7 +53,7 @@ const ChatInterface = ({ visible, onClose, lead, type = 'whatsapp' }) => {
       return;
     }
 
-    const user = JSON.parse(localStorage.getItem('user') || '{}');
+    const user = JSON.parse(localStorage.getItem('crm_user') || '{}');
 
     sendMessageMutation.mutate({
       lead_id: lead.lead_id,

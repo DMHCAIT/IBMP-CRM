@@ -6,7 +6,7 @@ import ProfessionalDashboard from '../pages/ProfessionalDashboard';
 import FinanceDashboard from '../features/dashboards/FinanceDashboard';
 
 const RoleBasedDashboard = () => {
-  const user = JSON.parse(localStorage.getItem('user') || '{}');
+  const user = JSON.parse(localStorage.getItem('crm_user') || '{}');
   const userRole = user.role;
 
   useEffect(() => {

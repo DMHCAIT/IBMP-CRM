@@ -15,7 +15,7 @@ const api = axios.create({
 // Attach the JWT token from localStorage to every outgoing request.
 api.interceptors.request.use((config) => {
   try {
-    const stored = localStorage.getItem('user');
+    const stored = localStorage.getItem('crm_user');
     const token = stored ? JSON.parse(stored)?.token : null;
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
