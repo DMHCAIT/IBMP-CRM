@@ -106,10 +106,11 @@ class SupabaseDataLayer:
             if _status:
                 if ',' in _status:
                     statuses = [s.strip() for s in _status.split(',') if s.strip()]
-                    or_filter = ','.join([f"status.ilike.%{s}%" for s in statuses])
+                    # Use eq for enum column (ilike not supported on enum type)
+                    or_filter = ','.join([f"status.eq.{s}" for s in statuses])
                     query = query.or_(or_filter)
                 else:
-                    query = query.ilike('status', f'%{_status.strip()}%')
+                    query = query.eq('status', _status.strip())
             
             _country = country_in if (country_in and not country) else country
             if _country:

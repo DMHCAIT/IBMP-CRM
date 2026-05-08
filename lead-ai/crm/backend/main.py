@@ -386,7 +386,7 @@ app.add_middleware(GZipMiddleware, minimum_size=500)  # compress responses > 500
 # CORS middleware - allow all Vercel preview deployments + explicit origins
 ALLOWED_ORIGINS = os.getenv(
     "ALLOWED_ORIGINS",
-    "http://localhost:3000"
+    "http://localhost:3000,http://localhost:5172,http://127.0.0.1:5172"
 ).split(",")
 ALLOWED_ORIGIN_REGEX = r"https://.*\.vercel\.app"
 
@@ -429,20 +429,20 @@ Base = declarative_base()
 # ============================================================================
 
 class LeadStatus(str, enum.Enum):
-    FRESH = "Fresh"
-    FOLLOW_UP = "Follow Up"
-    WARM = "Warm"
-    HOT = "Hot"
-    NOT_INTERESTED = "Not Interested"
-    JUNK = "Junk"
-    NOT_ANSWERING = "Not Answering"
-    ENROLLED = "Enrolled"
+    FRESH = "FRESH"
+    FOLLOW_UP = "FOLLOW_UP"
+    WARM = "WARM"
+    HOT = "HOT"
+    NOT_INTERESTED = "NOT_INTERESTED"
+    JUNK = "JUNK"
+    NOT_ANSWERING = "NOT_ANSWERING"
+    ENROLLED = "ENROLLED"
 
 class LeadSegment(str, enum.Enum):
-    HOT = "Hot"
-    WARM = "Warm"
-    COLD = "Cold"
-    JUNK = "Junk"
+    HOT = "HOT"
+    WARM = "WARM"
+    COLD = "COLD"
+    JUNK = "JUNK"
 
 class DBLead(Base):
     __tablename__ = "leads"
@@ -747,42 +747,42 @@ class NoteResponse(BaseModel):
 # This map converts any casing variant to the canonical enum value.
 _STATUS_NORMALISE_MAP: dict[str, str] = {
     # Fresh
-    "fresh": "Fresh",
+    "fresh": "FRESH",
     # Follow Up
-    "follow up": "Follow Up",
-    "followup": "Follow Up",
-    "follow_up": "Follow Up",
-    "follow-up": "Follow Up",
+    "follow up": "FOLLOW_UP",
+    "followup": "FOLLOW_UP",
+    "follow_up": "FOLLOW_UP",
+    "follow-up": "FOLLOW_UP",
     # Warm
-    "warm": "Warm",
+    "warm": "WARM",
     # Hot
-    "hot": "Hot",
+    "hot": "HOT",
     # Not Interested
-    "not interested": "Not Interested",
-    "not_interested": "Not Interested",
-    "notinterested": "Not Interested",
-    "ni": "Not Interested",
+    "not interested": "NOT_INTERESTED",
+    "not_interested": "NOT_INTERESTED",
+    "notinterested": "NOT_INTERESTED",
+    "ni": "NOT_INTERESTED",
     # Junk
-    "junk": "Junk",
-    "spam": "Junk",
-    "invalid": "Junk",
+    "junk": "JUNK",
+    "spam": "JUNK",
+    "invalid": "JUNK",
     # Not Answering
-    "not answering": "Not Answering",
-    "not_answering": "Not Answering",
-    "notanswering": "Not Answering",
-    "na": "Not Answering",
-    "no answer": "Not Answering",
-    "not connected": "Not Answering",
-    "switched off": "Not Answering",
-    "busy": "Not Answering",
+    "not answering": "NOT_ANSWERING",
+    "not_answering": "NOT_ANSWERING",
+    "notanswering": "NOT_ANSWERING",
+    "na": "NOT_ANSWERING",
+    "no answer": "NOT_ANSWERING",
+    "not connected": "NOT_ANSWERING",
+    "switched off": "NOT_ANSWERING",
+    "busy": "NOT_ANSWERING",
     # Enrolled
-    "enrolled": "Enrolled",
-    "admission done": "Enrolled",
-    "converted": "Enrolled",
+    "enrolled": "ENROLLED",
+    "admission done": "ENROLLED",
+    "converted": "ENROLLED",
 }
 
 # Valid enum values set for fast lookup
-_VALID_STATUSES = {"Fresh", "Follow Up", "Warm", "Hot", "Not Interested", "Junk", "Not Answering", "Enrolled"}
+_VALID_STATUSES = {"FRESH", "FOLLOW_UP", "WARM", "HOT", "NOT_INTERESTED", "JUNK", "NOT_ANSWERING", "ENROLLED"}
 
 def _normalise_status(v):
     if not v:
@@ -792,8 +792,8 @@ def _normalise_status(v):
     if raw in _VALID_STATUSES:
         return raw
     key = raw.lower()
-    # Return mapped canonical value, or default to "Fresh" for anything unrecognised
-    return _STATUS_NORMALISE_MAP.get(key, "Fresh")
+    # Return mapped canonical value, or default to "FRESH" for anything unrecognised
+    return _STATUS_NORMALISE_MAP.get(key, "FRESH")
 
 
 # Canonical source values and their import aliases
@@ -2837,7 +2837,6 @@ async def get_notifications():
             supabase_data.client.table('leads')
             .select('id,lead_id,full_name,course_interested,assigned_to,follow_up_date')
             .lt('follow_up_date', now_iso)
-            .not_.in_('status', ['Enrolled', 'Not Interested', 'Junk'])
             .order('follow_up_date', desc=False)
             .limit(20)
             .execute()
@@ -2860,8 +2859,7 @@ async def get_notifications():
         stale_hot_resp = (
             supabase_data.client.table('leads')
             .select('id,lead_id,full_name,course_interested,assigned_to,last_contact_date')
-            .eq('ai_segment', 'Hot')
-            .not_.in_('status', ['Enrolled', 'Not Interested'])
+            .eq('ai_segment', 'HOT')
             .or_(f'last_contact_date.lt.{three_days_ago},last_contact_date.is.null')
             .limit(10)
             .execute()
@@ -2884,7 +2882,6 @@ async def get_notifications():
             .select('id,lead_id,full_name,course_interested,assigned_to,follow_up_date')
             .gte('follow_up_date', today_start)
             .lte('follow_up_date', today_end)
-            .not_.in_('status', ['Enrolled', 'Not Interested', 'Junk'])
             .limit(20)
             .execute()
         )
@@ -3149,7 +3146,6 @@ async def get_followups_today(request: Request, assigned_to: Optional[str] = Non
         overdue_query = (
             supabase_data.client.table('leads')
             .select('id,lead_id,full_name,phone,whatsapp,course_interested,status,ai_segment,ai_score,assigned_to,follow_up_date,last_contact_date,country,next_action,primary_objection,churn_risk')
-            .not_.in_('status', active_statuses)
             .not_.is_('follow_up_date', 'null')
             .lt('follow_up_date', today_start)
         )
@@ -3161,7 +3157,6 @@ async def get_followups_today(request: Request, assigned_to: Optional[str] = Non
         today_query = (
             supabase_data.client.table('leads')
             .select('id,lead_id,full_name,phone,whatsapp,course_interested,status,ai_segment,ai_score,assigned_to,follow_up_date,last_contact_date,country,next_action,primary_objection,churn_risk')
-            .not_.in_('status', active_statuses)
             .gte('follow_up_date', today_start)
             .lte('follow_up_date', today_end)
         )
