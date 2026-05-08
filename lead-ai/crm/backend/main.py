@@ -710,8 +710,11 @@ class DBChatMessage(Base):
     interakt_id = Column(String, nullable=True)
 
 
-# Create all database tables
-Base.metadata.create_all(bind=engine)
+# Create all database tables (skip if direct DB connection unavailable — app uses Supabase REST API)
+try:
+    Base.metadata.create_all(bind=engine)
+except Exception as _db_init_err:
+    logger.warning(f"⚠️ Could not run create_all (direct DB unavailable, using Supabase REST API): {_db_init_err}")
 
 
 # ============================================================================
