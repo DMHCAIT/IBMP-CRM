@@ -386,9 +386,9 @@ app.add_middleware(GZipMiddleware, minimum_size=500)  # compress responses > 500
 # CORS middleware - allow all Vercel preview deployments + explicit origins
 ALLOWED_ORIGINS = os.getenv(
     "ALLOWED_ORIGINS",
-    "http://localhost:3000,http://localhost:5172,http://127.0.0.1:5172"
+    "http://localhost:3000,http://localhost:5172,http://127.0.0.1:5172,https://ibmpcrm.xyz,https://www.ibmpcrm.xyz"
 ).split(",")
-ALLOWED_ORIGIN_REGEX = r"https://.*\.vercel\.app"
+ALLOWED_ORIGIN_REGEX = r"https://.*\.vercel\.app|https://.*\.ibmpcrm\.xyz"
 
 app.add_middleware(
     CORSMiddleware,
