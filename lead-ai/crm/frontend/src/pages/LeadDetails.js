@@ -527,13 +527,13 @@ const LeadDetails = () => {
                 <Descriptions.Item label="Company">
                   {!isEditing ? (
                     lead?.company
-                      ? <Tag color={lead.company === 'MED' ? 'blue' : 'default'}>{lead.company}</Tag>
+                      ? <Tag color={lead.company === 'IBMP' ? 'blue' : 'purple'}>{lead.company}</Tag>
                       : <span style={{ color: '#8c8c8c' }}>—</span>
                   ) : (
                     <Form.Item name="company" noStyle>
                       <Select style={{ width: '100%' }} allowClear placeholder="Select company">
-                        <Option value="MED">MED</Option>
-                        <Option value="Others">Others</Option>
+                        <Option value="IBMP">IBMP</Option>
+                        <Option value="DMHCA">DMHCA</Option>
                       </Select>
                     </Form.Item>
                   )}

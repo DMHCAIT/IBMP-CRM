@@ -208,7 +208,7 @@ const STATUS_COLOR_MAP = {
   Fresh: 'blue', 'Follow Up': 'purple',
   'Not Interested': 'default', 'Not Answering': 'gray', Junk: 'volcano',
 };
-const COMPANY_OPTIONS = ['MED', 'Others'];
+const COMPANY_OPTIONS = ['IBMP', 'DMHCA'];
 
 // ════════════════════════════════════════════════════════════════════════════
 const LeadsPageEnhanced = () => {

@@ -15,7 +15,7 @@ const CRM_FIELDS = [
   { key: 'source', label: 'Source', required: false, type: 'text', icon: '📍', desc: 'Lead source (e.g., Website, Referral)' },
   { key: 'course_interested', label: 'Course Interested', required: false, type: 'text', icon: '🎓', desc: 'Fellowship or course' },
   { key: 'qualification', label: 'Qualification', required: false, type: 'text', icon: '🎯', desc: 'Academic qualification (e.g., MBBS, MD)' },
-  { key: 'company', label: 'Company', required: false, type: 'select', icon: '🏢', desc: 'Company / brand: MED or Others' },
+  { key: 'company', label: 'Company', required: false, type: 'select', icon: '🏢', desc: 'Company / brand: IBMP or DMHCA' },
   { key: 'status', label: 'Status', required: false, type: 'select', icon: '📊', desc: 'Lead status' },
   { key: 'assigned_to', label: 'Assigned To', required: false, type: 'text', icon: '👥', desc: 'Counselor name' },
   { key: 'expected_revenue', label: 'Expected Revenue', required: false, type: 'number', icon: '💰', desc: 'Expected deal value' },
