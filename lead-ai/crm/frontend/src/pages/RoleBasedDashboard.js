@@ -1,13 +1,13 @@
 import React, { useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { getDepartment, DEPARTMENTS } from '../config/rbac';
-import CEODashboard        from '../features/dashboards/CEODashboard';
-import MarketingDashboard  from '../features/dashboards/MarketingDashboard';
-import AdminDashboard      from '../features/dashboards/AdminDashboard';
-import CounselorDashboard  from '../features/dashboards/CounselorDashboard';
-import FinanceDashboard    from '../features/dashboards/FinanceDashboard';
-import AcademicDashboard   from '../features/dashboards/AcademicDashboard';
-import HRDashboard         from '../features/dashboards/HRDashboard';
+import CEOCommandCenter   from '../features/dashboards/CEOCommandCenter';
+import MarketingDashboard from '../features/dashboards/MarketingDashboard';
+import AdminDashboard     from '../features/dashboards/AdminDashboard';
+import CounselorDashboard from '../features/dashboards/CounselorDashboard';
+import FinanceDashboard   from '../features/dashboards/FinanceDashboard';
+import AcademicDashboard  from '../features/dashboards/AcademicDashboard';
+import HRDashboard        from '../features/dashboards/HRDashboard';
 
 const RoleBasedDashboard = () => {
   const { user } = useAuth();
@@ -19,8 +19,10 @@ const RoleBasedDashboard = () => {
   }, [user?.full_name]);
 
   switch (dept) {
+    // CEO and Super Admin → full company command center
     case DEPARTMENTS.CEO:
-      return <CEODashboard />;
+    case DEPARTMENTS.ADMIN:
+      return <CEOCommandCenter />;
 
     case DEPARTMENTS.MARKETING:
       return <MarketingDashboard />;
@@ -40,9 +42,8 @@ const RoleBasedDashboard = () => {
     case DEPARTMENTS.HR:
       return <HRDashboard />;
 
-    case DEPARTMENTS.ADMIN:
     default:
-      return <CEODashboard />;
+      return <CEOCommandCenter />;
   }
 };
 

@@ -26,13 +26,15 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
-// No redirect on 401 - authentication disabled
+// Redirect to login on 401 (token expired or invalid)
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    // Just log the error, don't redirect
     if (error.response?.status === 401) {
-      console.log('401 error - authentication disabled, continuing...');
+      localStorage.removeItem('crm_user');
+      if (!window.location.pathname.includes('/login')) {
+        window.location.href = '/login';
+      }
     }
     return Promise.reject(error);
   }
