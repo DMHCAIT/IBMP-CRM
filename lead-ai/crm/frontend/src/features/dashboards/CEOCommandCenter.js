@@ -197,68 +197,65 @@ const SalesDetail = ({ leads, users, meta }) => {
 };
 
 const AcademicDetail = ({ leads, meta }) => {
-  const STAGES = [
-    { s:'Enrolled',              label:'Enrolled',         color:'#7c3aed' },
-    { s:'Document Submitted',    label:'Docs Submitted',   color:'#d97706' },
-    { s:'University Applied',    label:'Uni Applied',      color:'#2563eb' },
-    { s:'Offer Letter Received', label:'Offer Letter',     color:'#059669' },
-    { s:'Visa Applied',          label:'Visa Applied',     color:'#db2777' },
-    { s:'Visa Approved',         label:'Visa Approved',    color:'#10b981' },
-  ];
-  const academic = leads.filter(l => STAGES.map(s=>s.s).includes(l.status));
+  // Academic dept only handles enrolled students (courses only — no university/visa)
+  const students = leads.filter(l => l.status === 'Enrolled' || l.status === 'ENROLLED');
+
+  const courseMap = {};
+  students.forEach(l => {
+    const c = l.course_interested || 'Not specified';
+    courseMap[c] = courseMap[c] || { count: 0, revenue: 0 };
+    courseMap[c].count++;
+    courseMap[c].revenue += l.potential_revenue || 0;
+  });
+  const topCourses = Object.entries(courseMap).sort((a,b)=>b[1].count-a[1].count).slice(0,5);
 
   const countryMap = {};
-  academic.forEach(l => { if(l.country) countryMap[l.country] = (countryMap[l.country]||0)+1; });
+  students.forEach(l => { if(l.country) countryMap[l.country] = (countryMap[l.country]||0)+1; });
   const countries = Object.entries(countryMap).sort((a,b)=>b[1]-a[1]).slice(0,5);
 
-  const pending = academic.filter(l => l.status === 'Document Submitted').length;
-  const uniWait = academic.filter(l => l.status === 'University Applied').length;
-  const visaPend = academic.filter(l => l.status === 'Visa Applied').length;
+  const totalRev = students.reduce((s,l) => s+(l.potential_revenue||0), 0);
 
   return (
     <div style={{ display:'flex', flexDirection:'column', gap:16 }}>
       <Row gutter={[12,12]}>
-        <Col span={8}><KPI label="In Pipeline" value={academic.length} color={meta.color} icon={GraduationCap} /></Col>
-        <Col span={8}><KPI label="Docs Pending" value={pending} color="#d97706" icon={FileText} /></Col>
-        <Col span={8}><KPI label="Visa Pending" value={visaPend} color="#db2777" icon={Globe} /></Col>
+        <Col span={8}><KPI label="Enrolled" value={students.length} color={meta.color} icon={GraduationCap} /></Col>
+        <Col span={8}><KPI label="Courses" value={Object.keys(courseMap).length} color="#2563eb" icon={FileText} /></Col>
+        <Col span={8}><KPI label="Revenue" value={`₹${(totalRev/100000).toFixed(1)}L`} color="#059669" icon={Globe} /></Col>
       </Row>
 
-      <Card size="small" title="📋 Academic Pipeline" style={{ borderRadius:10 }}>
-        {STAGES.map(({ s, label, color }) => {
-          const cnt = academic.filter(l => l.status === s).length;
-          return (
-            <div key={s} style={{ display:'flex', alignItems:'center', gap:10, marginBottom:8 }}>
-              <div style={{ width:10, height:10, borderRadius:'50%', background:color, flexShrink:0 }} />
-              <div style={{ flex:1, fontSize:12 }}>{label}</div>
-              <div style={{ fontWeight:700, color, fontSize:14 }}>{cnt}</div>
-              <Progress percent={academic.length ? Math.round((cnt/academic.length)*100):0}
-                strokeColor={color} showInfo={false} size="small" style={{ width:80, margin:0 }} />
-            </div>
-          );
-        })}
-      </Card>
-
-      <Card size="small" title="🌍 Destination Countries" style={{ borderRadius:10 }}>
-        {countries.map(([c, n]) => (
-          <div key={c} style={{ marginBottom:8 }}>
+      <Card size="small" title="📚 Enrollments by Course" style={{ borderRadius:10 }}>
+        {topCourses.length === 0 ? (
+          <div style={{ color:'var(--text-tertiary)', fontSize:12 }}>No enrollments yet</div>
+        ) : topCourses.map(([course, data]) => (
+          <div key={course} style={{ marginBottom:10 }}>
             <div style={{ display:'flex', justifyContent:'space-between', fontSize:12, marginBottom:2 }}>
-              <span>{c}</span><span>{n}</span>
+              <span style={{ overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', maxWidth:140 }}>{course}</span>
+              <span style={{ color:meta.color, fontWeight:600 }}>{data.count}</span>
             </div>
-            <Progress percent={academic.length ? Math.round((n/academic.length)*100):0}
+            <Progress percent={students.length ? Math.round((data.count/students.length)*100):0}
               strokeColor={meta.color} showInfo={false} size="small" />
           </div>
         ))}
       </Card>
 
-      <Card size="small" title="⚠️ Needs Attention" style={{ borderRadius:10, borderLeft:'3px solid #d97706' }}>
-        {pending === 0 && uniWait === 0 ? (
-          <div style={{ color:'#059669', fontSize:12 }}>✓ No urgent items</div>
-        ) : (
-          <div style={{ fontSize:12, display:'flex', flexDirection:'column', gap:6 }}>
-            {pending > 0 && <div>📂 {pending} students awaiting document processing</div>}
-            {uniWait > 0 && <div>🏛️ {uniWait} students awaiting university response</div>}
+      <Card size="small" title="🌍 Students by Country" style={{ borderRadius:10 }}>
+        {countries.length === 0 ? (
+          <div style={{ color:'var(--text-tertiary)', fontSize:12 }}>No country data</div>
+        ) : countries.map(([c, n]) => (
+          <div key={c} style={{ display:'flex', justifyContent:'space-between', padding:'5px 0', borderBottom:'1px solid var(--border)', fontSize:12 }}>
+            <span>{c}</span>
+            <Tag color="purple" style={{margin:0}}>{n}</Tag>
           </div>
-        )}
+        ))}
+      </Card>
+
+      <Card size="small" title="📋 Recent Enrollments" style={{ borderRadius:10 }}>
+        {students.slice(0,5).map(s => (
+          <div key={s.id} style={{ display:'flex', justifyContent:'space-between', padding:'5px 0', borderBottom:'1px solid var(--border)', fontSize:12 }}>
+            <span style={{ fontWeight:500 }}>{s.full_name}</span>
+            <Tag color="purple" style={{margin:0}}>{s.course_interested || '—'}</Tag>
+          </div>
+        ))}
       </Card>
     </div>
   );
@@ -641,11 +638,11 @@ const DEPARTMENTS_CONFIG = [
     id:    DEPARTMENTS.ACADEMIC,
     label: 'Academic',
     icon:  '🎓',
-    desc:  'University & visa processing',
+    desc:  'Course enrollments & student management',
     metrics: [
-      { key:'inPipeline', label:'Pipeline' },
-      { key:'docsPending',label:'Docs Pend.' },
-      { key:'visaPending', label:'Visa Pend.' },
+      { key:'enrolled',   label:'Enrolled' },
+      { key:'courses',    label:'Courses' },
+      { key:'revenue',    label:'Revenue' },
     ],
   },
   {
@@ -703,7 +700,7 @@ export default function CEOCommandCenter() {
   const metrics = useMemo(() => {
     const enrolled  = leads.filter(l => l.status === 'Enrolled');
     const hot       = leads.filter(l => l.status === 'Hot');
-    const academic  = leads.filter(l => ['Document Submitted','University Applied','Offer Letter Received','Visa Applied','Visa Approved','Enrolled'].includes(l.status));
+    // Academic dept: enrolled students only (courses — no university/visa)
     const newToday  = leads.filter(l => new Date(l.created_at).toDateString() === new Date().toDateString());
     const followups = leads.filter(l => l.next_followup && new Date(l.next_followup).toDateString() === new Date().toDateString());
     const totalRev  = enrolled.reduce((s,l) => s+(l.potential_revenue||0), 0);
@@ -727,11 +724,11 @@ export default function CEOCommandCenter() {
         health:      hot.length > 0 ? 'success' : 'warning',
       },
       [DEPARTMENTS.ACADEMIC]: {
-        inPipeline:  academic.length,
-        docsPending: leads.filter(l=>l.status==='Document Submitted').length,
-        visaPending: leads.filter(l=>l.status==='Visa Applied').length,
-        teamSize:    deptCounts[DEPARTMENTS.ACADEMIC] || 0,
-        health:      'success',
+        enrolled:  enrolled.length,
+        courses:   [...new Set(enrolled.map(l=>l.course_interested).filter(Boolean))].length,
+        revenue:   fmtL(enrolled.reduce((s,l)=>s+(l.potential_revenue||0),0)),
+        teamSize:  deptCounts[DEPARTMENTS.ACADEMIC] || 0,
+        health:    enrolled.length > 0 ? 'success' : 'warning',
       },
       [DEPARTMENTS.ACCOUNTS]: {
         revenue:    fmtL(totalRev),
@@ -855,12 +852,8 @@ export default function CEOCommandCenter() {
         const alerts = [];
         const hotCount = leads.filter(l=>l.status==='Hot').length;
         const fupCount = leads.filter(l=>l.next_followup&&new Date(l.next_followup).toDateString()===new Date().toDateString()).length;
-        const docPend  = leads.filter(l=>l.status==='Document Submitted').length;
-        const visaPend = leads.filter(l=>l.status==='Visa Applied').length;
         if (hotCount > 0)  alerts.push({ color:'#ef4444', icon:'🔥', msg:`${hotCount} hot leads need immediate sales attention` });
         if (fupCount > 0)  alerts.push({ color:'#d97706', icon:'📞', msg:`${fupCount} follow-ups due today` });
-        if (docPend > 0)   alerts.push({ color:'#2563eb', icon:'📂', msg:`${docPend} students awaiting document processing (Academic)` });
-        if (visaPend > 0)  alerts.push({ color:'#db2777', icon:'✈️', msg:`${visaPend} visa applications in progress (Academic)` });
         if (alerts.length === 0) return null;
         return (
           <div style={{ display:'flex', flexDirection:'column', gap:8 }}>

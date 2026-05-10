@@ -1,82 +1,85 @@
+/**
+ * Academic Page
+ * Manages enrolled students — course tracking, document collection,
+ * seat confirmation and course progress. No university / visa flow.
+ */
 import React, { useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import {
-  Table, Card, Row, Col, Tag, Button, Input, Select, Tabs,
-  Statistic, Spin, Modal, Form, Steps, message, Badge,
+  Table, Card, Row, Col, Tag, Button, Input, Select,
+  Statistic, Spin, Badge, Modal, Tabs,
 } from 'antd';
 import {
-  GraduationCap, FileText, Globe, CheckCircle, Clock,
-  AlertCircle, Search, Edit2, Eye,
+  GraduationCap, FileText, CheckCircle, Search, Eye,
+  BookOpen, Users, ClipboardList, TrendingUp,
 } from 'lucide-react';
 import { leadsAPI } from '../api/api';
 import { useNavigate } from 'react-router-dom';
 
 const { Option } = Select;
 
-// Academic pipeline statuses in workflow order
-const PIPELINE = [
-  { status: 'Enrolled',               label: 'Enrolled',               color: '#7c3aed', desc: 'Payment confirmed, seat secured' },
-  { status: 'Document Submitted',     label: 'Docs Submitted',         color: '#d97706', desc: 'Student documents received' },
-  { status: 'University Applied',     label: 'University Applied',     color: '#2563eb', desc: 'Application sent to university' },
-  { status: 'Offer Letter Received',  label: 'Offer Letter',           color: '#059669', desc: 'University acceptance received' },
-  { status: 'Visa Applied',           label: 'Visa Applied',           color: '#db2777', desc: 'Visa application submitted' },
-  { status: 'Visa Approved',          label: 'Visa Approved',          color: '#10b981', desc: 'Visa granted' },
-  { status: 'Enrolled Complete',      label: 'Enrollment Complete',    color: '#374151', desc: 'Student departed / enrolled' },
-];
-
+// ── Documents that Academic dept collects from each enrolled student ──────
 const REQUIRED_DOCS = [
-  'Passport Copy', '10th Marksheet', '12th Marksheet',
-  'NEET Score Card', 'Photographs', 'Bank Statement',
-  'Medical Certificate', 'Police Clearance',
+  '10th Marksheet',
+  '12th Marksheet',
+  'NEET Score Card',
+  'Passport / Aadhaar Copy',
+  'Photographs (passport size)',
+  'Medical Fitness Certificate',
+  'Transfer Certificate',
+  'Character Certificate',
+  'Bank Challan / Fee Receipt',
 ];
 
-// ── Student detail modal ──────────────────────────────────────────────────
-const StudentDetailModal = ({ lead, open, onClose }) => {
+// ── Course progress stages (internal Academic workflow) ────────────────────
+const COURSE_STAGES = [
+  { key: 'enrolled',    label: 'Enrolled',          color: '#7c3aed', desc: 'Seat booked, payment done' },
+  { key: 'docs',        label: 'Docs Collected',    color: '#d97706', desc: 'All documents received' },
+  { key: 'registered',  label: 'Seat Confirmed',    color: '#2563eb', desc: 'Officially registered' },
+  { key: 'active',      label: 'Course Active',     color: '#059669', desc: 'Student attending' },
+  { key: 'completed',   label: 'Course Completed',  color: '#374151', desc: 'Course finished' },
+];
+
+// ── Student Detail Modal ────────────────────────────────────────────────────
+const StudentModal = ({ lead, open, onClose }) => {
   const navigate = useNavigate();
   if (!lead) return null;
 
-  const currentStep = PIPELINE.findIndex(p => p.status === lead.status);
-  const meta = PIPELINE.find(p => p.status === lead.status) || PIPELINE[0];
-
   return (
-    <Modal title="Student Academic File" open={open} onCancel={onClose} width={700} footer={
-      <Button type="primary" onClick={() => { onClose(); navigate(`/leads/${lead.id}`); }}>
-        Open Full Profile
-      </Button>
-    }>
+    <Modal
+      title="Student Academic File"
+      open={open}
+      onCancel={onClose}
+      width={640}
+      footer={
+        <Button type="primary" onClick={() => { onClose(); navigate(`/leads/${lead.id}`); }}>
+          Open Full Profile
+        </Button>
+      }
+    >
       <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
         {/* Student info */}
-        <div style={{ display: 'flex', gap: 16, alignItems: 'flex-start' }}>
+        <div style={{ display: 'flex', gap: 14, alignItems: 'flex-start' }}>
           <div style={{
-            width: 52, height: 52, borderRadius: 12,
-            background: `${meta.color}18`, display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: 22,
+            width: 50, height: 50, borderRadius: 12,
+            background: '#ede9fe', display: 'flex',
+            alignItems: 'center', justifyContent: 'center', fontSize: 22,
           }}>🎓</div>
           <div>
             <div style={{ fontSize: 18, fontWeight: 700 }}>{lead.full_name}</div>
-            <div style={{ fontSize: 13, color: 'var(--text-secondary)' }}>{lead.email} · {lead.phone}</div>
-            <Tag color={meta.color} style={{ marginTop: 4 }}>{lead.status}</Tag>
+            <div style={{ fontSize: 13, color: 'var(--text-secondary)' }}>
+              {lead.email} {lead.phone && `· ${lead.phone}`}
+            </div>
           </div>
         </div>
 
-        {/* Pipeline progress */}
-        <div style={{ background: '#f8fafc', borderRadius: 10, padding: 16 }}>
-          <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-tertiary)', marginBottom: 12 }}>ACADEMIC PIPELINE</div>
-          <Steps
-            size="small"
-            current={currentStep}
-            items={PIPELINE.map(p => ({ title: p.label, description: '' }))}
-            style={{ fontSize: 11 }}
-          />
-        </div>
-
-        {/* Details grid */}
+        {/* Course details */}
         <Row gutter={[12, 12]}>
           {[
             { label: 'Course', value: lead.course_interested },
             { label: 'Country', value: lead.country },
-            { label: 'University', value: lead.hospital_name || lead.university || '—' },
-            { label: 'Counselor', value: lead.assigned_to || '—' },
+            { label: 'Counselor', value: lead.assigned_to },
+            { label: 'Revenue', value: lead.potential_revenue ? `₹${lead.potential_revenue.toLocaleString()}` : '—' },
           ].map(f => (
             <Col key={f.label} span={12}>
               <div style={{ padding: '10px 14px', background: '#f8fafc', borderRadius: 8 }}>
@@ -87,187 +90,315 @@ const StudentDetailModal = ({ lead, open, onClose }) => {
           ))}
         </Row>
 
-        {/* Required documents */}
+        {/* Document checklist */}
         <div>
-          <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-tertiary)', marginBottom: 8 }}>REQUIRED DOCUMENTS</div>
+          <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-tertiary)', marginBottom: 8 }}>
+            REQUIRED DOCUMENTS
+          </div>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
             {REQUIRED_DOCS.map(doc => (
-              <Tag key={doc} icon={<CheckCircle size={10} />} color="green" style={{ fontSize: 11 }}>{doc}</Tag>
+              <Tag key={doc} icon={<CheckCircle size={10} />} color="green" style={{ fontSize: 11 }}>
+                {doc}
+              </Tag>
             ))}
           </div>
         </div>
+
+        {/* Notes */}
+        {lead.notes && (
+          <div style={{ padding: '10px 14px', background: '#fefce8', borderRadius: 8, fontSize: 13 }}>
+            <strong>Notes: </strong>{lead.notes}
+          </div>
+        )}
       </div>
     </Modal>
   );
 };
 
-// ── Main Academic Page ────────────────────────────────────────────────────
+// ── Main Page ───────────────────────────────────────────────────────────────
 const AcademicPage = () => {
-  const [search, setSearch]         = useState('');
-  const [statusFilter, setStatus]   = useState(null);
+  const [search, setSearch]       = useState('');
+  const [courseFilter, setCourse] = useState(null);
   const [countryFilter, setCountry] = useState(null);
-  const [selectedLead, setSelected] = useState(null);
-  const [modalOpen, setModal]       = useState(false);
+  const [selected, setSelected]   = useState(null);
+  const [modalOpen, setModal]     = useState(false);
   const navigate = useNavigate();
 
   const { data: leadsResp, isLoading } = useQuery({
     queryKey: ['leads-academic-page'],
+    queryFn: () => leadsAPI.getAll({ status: 'Enrolled', limit: 2000 }).then(r => r.data),
+  });
+
+  // Also fetch all leads to get pipeline context
+  const { data: allLeadsResp } = useQuery({
+    queryKey: ['leads-all-academic'],
     queryFn: () => leadsAPI.getAll({ limit: 2000 }).then(r => r.data),
   });
 
-  const leads = leadsResp?.leads || [];
-  const academicStatuses = PIPELINE.map(p => p.status);
+  const students   = leadsResp?.leads || (Array.isArray(leadsResp) ? leadsResp : []);
+  const allLeads   = allLeadsResp?.leads || [];
 
-  // Include enrolled leads (payment confirmed = start of academic journey)
-  const allAcademic = leads.filter(l => academicStatuses.includes(l.status) || l.status === 'Enrolled');
+  // Filter options
+  const courses  = [...new Set(students.map(s => s.course_interested).filter(Boolean))].sort();
+  const countries = [...new Set(students.map(s => s.country).filter(Boolean))].sort();
 
-  const filtered = allAcademic.filter(l => {
-    const ms = !search || l.full_name?.toLowerCase().includes(search.toLowerCase())
-      || l.email?.toLowerCase().includes(search.toLowerCase());
-    const mst = !statusFilter || l.status === statusFilter;
-    const mc  = !countryFilter || l.country === countryFilter;
-    return ms && mst && mc;
+  // Filtered list
+  const filtered = students.filter(s => {
+    const ms = !search || s.full_name?.toLowerCase().includes(search.toLowerCase())
+      || s.email?.toLowerCase().includes(search.toLowerCase());
+    const mc = !courseFilter  || s.course_interested === courseFilter;
+    const mct = !countryFilter || s.country === countryFilter;
+    return ms && mc && mct;
   });
 
-  const countries = [...new Set(allAcademic.map(l => l.country).filter(Boolean))];
+  // Course breakdown
+  const courseMap = {};
+  students.forEach(s => {
+    const c = s.course_interested || 'Not specified';
+    courseMap[c] = (courseMap[c] || 0) + 1;
+  });
+  const topCourses = Object.entries(courseMap).sort((a, b) => b[1] - a[1]);
 
-  const openDetail = (lead) => { setSelected(lead); setModal(true); };
+  // Revenue totals
+  const totalRevenue = students.reduce((sum, s) => sum + (s.potential_revenue || 0), 0);
+  const avgRevenue   = students.length ? totalRevenue / students.length : 0;
 
-  const statusCounts = PIPELINE.reduce((acc, p) => {
-    acc[p.status] = allAcademic.filter(l => l.status === p.status).length;
-    return acc;
-  }, {});
+  // Country breakdown
+  const countryMap = {};
+  students.forEach(s => { if (s.country) countryMap[s.country] = (countryMap[s.country] || 0) + 1; });
+  const topCountries = Object.entries(countryMap).sort((a, b) => b[1] - a[1]).slice(0, 5);
+
+  const openDetail = (s) => { setSelected(s); setModal(true); };
 
   const columns = [
     {
-      title: 'Student', key: 'student',
-      render: (_, l) => (
-        <div>
-          <div style={{ fontWeight: 600, fontSize: 13 }}>{l.full_name}</div>
-          <div style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>{l.email}</div>
+      title: 'Student',
+      key: 'student',
+      render: (_, s) => (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <div style={{
+            width: 34, height: 34, borderRadius: 8,
+            background: '#ede9fe', display: 'flex',
+            alignItems: 'center', justifyContent: 'center',
+            fontWeight: 700, fontSize: 13, color: '#7c3aed',
+          }}>
+            {s.full_name?.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()}
+          </div>
+          <div>
+            <div style={{ fontWeight: 600, fontSize: 13 }}>{s.full_name}</div>
+            <div style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>{s.email}</div>
+          </div>
         </div>
       ),
     },
-    { title: 'Course', dataIndex: 'course_interested', key: 'course', render: t => <Tag color="blue">{t || '—'}</Tag> },
-    { title: 'Country', dataIndex: 'country', key: 'country', render: t => t || '—' },
     {
-      title: 'University', key: 'uni',
-      render: (_, l) => l.hospital_name || l.university || <span style={{ color: 'var(--text-tertiary)' }}>Not assigned</span>,
+      title: 'Course',
+      dataIndex: 'course_interested',
+      key: 'course',
+      render: t => <Tag color="purple">{t || '—'}</Tag>,
+      filters: courses.map(c => ({ text: c, value: c })),
+      onFilter: (val, r) => r.course_interested === val,
     },
     {
-      title: 'Academic Status', dataIndex: 'status', key: 'status',
-      render: s => {
-        const meta = PIPELINE.find(p => p.status === s);
-        return <Tag color={meta?.color || 'default'}>{s}</Tag>;
-      },
-    },
-    {
-      title: 'Counselor', dataIndex: 'assigned_to', key: 'counselor',
+      title: 'Country',
+      dataIndex: 'country',
+      key: 'country',
       render: t => t || '—',
     },
     {
-      title: 'Action', key: 'action',
-      render: (_, l) => (
+      title: 'Phone',
+      dataIndex: 'phone',
+      key: 'phone',
+      render: t => t || '—',
+    },
+    {
+      title: 'Revenue',
+      dataIndex: 'potential_revenue',
+      key: 'revenue',
+      render: v => v ? <span style={{ color: '#059669', fontWeight: 600 }}>₹{v.toLocaleString()}</span> : '—',
+      sorter: (a, b) => (a.potential_revenue || 0) - (b.potential_revenue || 0),
+      defaultSortOrder: 'descend',
+    },
+    {
+      title: 'Counselor',
+      dataIndex: 'assigned_to',
+      key: 'counselor',
+      render: t => t || '—',
+    },
+    {
+      title: 'Enrolled On',
+      key: 'date',
+      render: (_, s) => {
+        const d = new Date(s.updated_at || s.created_at);
+        return d.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: '2-digit' });
+      },
+      sorter: (a, b) => new Date(b.updated_at || b.created_at) - new Date(a.updated_at || a.created_at),
+    },
+    {
+      title: 'Action',
+      key: 'action',
+      render: (_, s) => (
         <div style={{ display: 'flex', gap: 6 }}>
-          <Button size="small" icon={<Eye size={13} />} onClick={() => openDetail(l)}>View</Button>
-          <Button size="small" icon={<Edit2 size={13} />} onClick={() => navigate(`/leads/${l.id}`)}>Edit</Button>
+          <Button size="small" icon={<Eye size={13} />} onClick={() => openDetail(s)}>
+            File
+          </Button>
+          <Button size="small" onClick={() => navigate(`/leads/${s.id}`)}>
+            Edit
+          </Button>
         </div>
       ),
     },
   ];
 
-  if (isLoading) return <div style={{ textAlign: 'center', padding: 60 }}><Spin size="large" /></div>;
+  if (isLoading) {
+    return (
+      <div style={{ textAlign: 'center', padding: 60 }}>
+        <Spin size="large" />
+      </div>
+    );
+  }
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-        <div style={{ width: 40, height: 40, borderRadius: 10, background: '#d1fae5', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20 }}>🎓</div>
+        <div style={{
+          width: 40, height: 40, borderRadius: 10,
+          background: '#d1fae5', display: 'flex',
+          alignItems: 'center', justifyContent: 'center', fontSize: 20,
+        }}>🎓</div>
         <div>
-          <div style={{ fontSize: 20, fontWeight: 700 }}>Academic — Student Management</div>
+          <div style={{ fontSize: 20, fontWeight: 700 }}>Academic — Enrolled Students</div>
           <div style={{ fontSize: 13, color: 'var(--text-secondary)' }}>
-            University applications, documentation & enrollment tracking
+            Course enrollment, documentation & student management
           </div>
         </div>
       </div>
 
-      {/* Pipeline status cards */}
-      <Row gutter={[10, 10]}>
-        {PIPELINE.map(p => (
-          <Col key={p.status} xs={12} sm={8} lg={24 / PIPELINE.length}>
-            <Card
-              onClick={() => setStatus(p.status === statusFilter ? null : p.status)}
-              style={{
-                borderRadius: 10, cursor: 'pointer', textAlign: 'center',
-                borderTop: `3px solid ${p.color}`,
-                boxShadow: statusFilter === p.status ? `0 0 0 2px ${p.color}` : 'none',
-                transition: 'all 0.2s',
-              }}
-            >
-              <div style={{ fontSize: 22, fontWeight: 700, color: p.color }}>{statusCounts[p.status] || 0}</div>
-              <div style={{ fontSize: 10, color: 'var(--text-secondary)', lineHeight: 1.3 }}>{p.label}</div>
+      {/* KPIs */}
+      <Row gutter={[16, 16]}>
+        {[
+          { title: 'Total Enrolled', value: students.length, color: '#7c3aed', icon: GraduationCap },
+          { title: 'Courses',        value: Object.keys(courseMap).length, color: '#2563eb', icon: BookOpen },
+          { title: 'Total Revenue',  value: `₹${(totalRevenue / 100000).toFixed(1)}L`, color: '#059669', icon: TrendingUp },
+          { title: 'Avg Revenue',    value: `₹${Math.round(avgRevenue / 1000)}K`, color: '#d97706', icon: ClipboardList },
+        ].map(s => (
+          <Col key={s.title} xs={24} sm={12} lg={6}>
+            <Card style={{ borderRadius: 12, borderTop: `3px solid ${s.color}` }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <Statistic title={s.title} value={s.value} valueStyle={{ color: s.color, fontWeight: 700 }} />
+                <div style={{
+                  width: 40, height: 40, borderRadius: 10,
+                  background: `${s.color}15`, display: 'flex',
+                  alignItems: 'center', justifyContent: 'center',
+                }}>
+                  <s.icon size={20} color={s.color} />
+                </div>
+              </div>
             </Card>
           </Col>
         ))}
       </Row>
 
-      {/* Filters */}
-      <Card style={{ borderRadius: 12 }}>
-        <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-          <Input
-            placeholder="Search student by name or email..."
-            prefix={<Search size={14} />}
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            style={{ width: 280 }}
-          />
-          <Select placeholder="All Statuses" allowClear value={statusFilter} onChange={setStatus} style={{ width: 200 }}>
-            {PIPELINE.map(p => <Option key={p.status} value={p.status}>{p.label}</Option>)}
-          </Select>
-          <Select placeholder="All Countries" allowClear value={countryFilter} onChange={setCountry} style={{ width: 160 }}>
-            {countries.map(c => <Option key={c} value={c}>{c}</Option>)}
-          </Select>
-          {(search || statusFilter || countryFilter) && (
-            <Button onClick={() => { setSearch(''); setStatus(null); setCountry(null); }}>Clear</Button>
-          )}
-          <div style={{ marginLeft: 'auto', alignSelf: 'center', fontSize: 13, color: 'var(--text-secondary)' }}>
-            {filtered.length} students
-          </div>
-        </div>
-      </Card>
-
-      {/* Student table */}
-      <Card style={{ borderRadius: 12 }}>
-        <Table
-          dataSource={filtered}
-          rowKey="id"
-          columns={columns}
-          pagination={{ pageSize: 15, showSizeChanger: true }}
-          size="middle"
-          onRow={r => ({ style: { cursor: 'pointer' } })}
-        />
-      </Card>
-
-      {/* Required docs checklist */}
-      <Card title="Required Documents Checklist" style={{ borderRadius: 12 }}>
+      {/* Course breakdown cards */}
+      <Card title="📚 Enrollment by Course" style={{ borderRadius: 12 }}>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
-          {REQUIRED_DOCS.map((doc, i) => (
-            <div key={doc} style={{
-              padding: '8px 16px', borderRadius: 8,
-              background: '#f0fdf4', border: '1px solid #bbf7d0',
-              display: 'flex', alignItems: 'center', gap: 6, fontSize: 13,
-            }}>
-              <CheckCircle size={14} color="#059669" />
-              {doc}
+          {topCourses.map(([course, count]) => (
+            <div
+              key={course}
+              onClick={() => setCourse(courseFilter === course ? null : course)}
+              style={{
+                padding: '10px 16px', borderRadius: 10, cursor: 'pointer',
+                background: courseFilter === course ? '#ede9fe' : '#f8fafc',
+                border: `1px solid ${courseFilter === course ? '#7c3aed' : '#e5e7eb'}`,
+                transition: 'all 0.15s',
+              }}
+            >
+              <div style={{ fontSize: 20, fontWeight: 700, color: '#7c3aed' }}>{count}</div>
+              <div style={{ fontSize: 12, color: 'var(--text-secondary)', maxWidth: 130, lineHeight: 1.3 }}>
+                {course}
+              </div>
             </div>
           ))}
         </div>
-        <div style={{ marginTop: 12, fontSize: 12, color: 'var(--text-tertiary)' }}>
-          All documents must be collected before university application. Update student status in their profile.
-        </div>
       </Card>
 
-      <StudentDetailModal lead={selectedLead} open={modalOpen} onClose={() => setModal(false)} />
+      <Row gutter={[16, 16]}>
+        {/* Student table */}
+        <Col xs={24} lg={16}>
+          <Card style={{ borderRadius: 12 }}>
+            {/* Filters */}
+            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 16 }}>
+              <Input
+                placeholder="Search student..."
+                prefix={<Search size={14} />}
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                style={{ width: 220 }}
+              />
+              <Select placeholder="All Courses" allowClear value={courseFilter} onChange={setCourse} style={{ width: 180 }}>
+                {courses.map(c => <Option key={c} value={c}>{c}</Option>)}
+              </Select>
+              <Select placeholder="All Countries" allowClear value={countryFilter} onChange={setCountry} style={{ width: 150 }}>
+                {countries.map(c => <Option key={c} value={c}>{c}</Option>)}
+              </Select>
+              {(search || courseFilter || countryFilter) && (
+                <Button onClick={() => { setSearch(''); setCourse(null); setCountry(null); }}>
+                  Clear
+                </Button>
+              )}
+              <div style={{ marginLeft: 'auto', alignSelf: 'center', fontSize: 13, color: 'var(--text-secondary)' }}>
+                {filtered.length} students
+              </div>
+            </div>
+
+            <Table
+              dataSource={filtered}
+              rowKey="id"
+              columns={columns}
+              pagination={{ pageSize: 12, showSizeChanger: true }}
+              size="middle"
+            />
+          </Card>
+        </Col>
+
+        {/* Side panels */}
+        <Col xs={24} lg={8}>
+          {/* Country breakdown */}
+          <Card title="🌍 Students by Country" style={{ borderRadius: 12, marginBottom: 16 }}>
+            {topCountries.length === 0 ? (
+              <div style={{ color: 'var(--text-tertiary)', fontSize: 13 }}>No data</div>
+            ) : topCountries.map(([country, count]) => (
+              <div key={country} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 0', borderBottom: '1px solid var(--border)' }}>
+                <span style={{ fontSize: 13 }}>{country}</span>
+                <Tag color="purple">{count}</Tag>
+              </div>
+            ))}
+          </Card>
+
+          {/* Required documents checklist */}
+          <Card title="📋 Document Checklist" style={{ borderRadius: 12 }}>
+            <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginBottom: 10 }}>
+              Collect from every enrolled student
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              {REQUIRED_DOCS.map(doc => (
+                <div key={doc} style={{
+                  display: 'flex', alignItems: 'center', gap: 8,
+                  padding: '6px 10px', borderRadius: 6,
+                  background: '#f0fdf4', border: '1px solid #bbf7d0',
+                  fontSize: 12,
+                }}>
+                  <CheckCircle size={12} color="#059669" />
+                  {doc}
+                </div>
+              ))}
+            </div>
+          </Card>
+        </Col>
+      </Row>
+
+      <StudentModal lead={selected} open={modalOpen} onClose={() => setModal(false)} />
     </div>
   );
 };

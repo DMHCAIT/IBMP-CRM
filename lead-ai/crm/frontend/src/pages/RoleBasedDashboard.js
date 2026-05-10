@@ -1,13 +1,23 @@
-import React, { useEffect } from 'react';
+import React, { lazy, Suspense, useEffect } from 'react';
+import { Spin } from 'antd';
 import { useAuth } from '../context/AuthContext';
 import { getDepartment, DEPARTMENTS } from '../config/rbac';
-import CEOCommandCenter   from '../features/dashboards/CEOCommandCenter';
-import MarketingDashboard from '../features/dashboards/MarketingDashboard';
-import AdminDashboard     from '../features/dashboards/AdminDashboard';
-import CounselorDashboard from '../features/dashboards/CounselorDashboard';
-import FinanceDashboard   from '../features/dashboards/FinanceDashboard';
-import AcademicDashboard  from '../features/dashboards/AcademicDashboard';
-import HRDashboard        from '../features/dashboards/HRDashboard';
+
+// Each dashboard is its own lazy chunk — avoids the TDZ circular-init
+// error that happens when a lazy-loaded module eagerly imports many others.
+const CEOCommandCenter   = lazy(() => import('../features/dashboards/CEOCommandCenter'));
+const MarketingDashboard = lazy(() => import('../features/dashboards/MarketingDashboard'));
+const AdminDashboard     = lazy(() => import('../features/dashboards/AdminDashboard'));
+const CounselorDashboard = lazy(() => import('../features/dashboards/CounselorDashboard'));
+const FinanceDashboard   = lazy(() => import('../features/dashboards/FinanceDashboard'));
+const AcademicDashboard  = lazy(() => import('../features/dashboards/AcademicDashboard'));
+const HRDashboard        = lazy(() => import('../features/dashboards/HRDashboard'));
+
+const Loader = () => (
+  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '60vh' }}>
+    <Spin size="large" />
+  </div>
+);
 
 const RoleBasedDashboard = () => {
   const { user } = useAuth();
@@ -18,33 +28,34 @@ const RoleBasedDashboard = () => {
     document.title = `Dashboard — ${user?.full_name || 'CRM'}`;
   }, [user?.full_name]);
 
+  let Dashboard;
   switch (dept) {
-    // CEO and Super Admin → full company command center
     case DEPARTMENTS.CEO:
     case DEPARTMENTS.ADMIN:
-      return <CEOCommandCenter />;
-
+      Dashboard = <CEOCommandCenter />;
+      break;
     case DEPARTMENTS.MARKETING:
-      return <MarketingDashboard />;
-
+      Dashboard = <MarketingDashboard />;
+      break;
     case DEPARTMENTS.SALES:
-      if (['Sales Manager', 'Team Leader', 'Manager'].includes(role)) {
-        return <AdminDashboard />;
-      }
-      return <CounselorDashboard user={user} />;
-
+      Dashboard = ['Sales Manager', 'Team Leader', 'Manager'].includes(role)
+        ? <AdminDashboard />
+        : <CounselorDashboard user={user} />;
+      break;
     case DEPARTMENTS.ACADEMIC:
-      return <AcademicDashboard />;
-
+      Dashboard = <AcademicDashboard />;
+      break;
     case DEPARTMENTS.ACCOUNTS:
-      return <FinanceDashboard />;
-
+      Dashboard = <FinanceDashboard />;
+      break;
     case DEPARTMENTS.HR:
-      return <HRDashboard />;
-
+      Dashboard = <HRDashboard />;
+      break;
     default:
-      return <CEOCommandCenter />;
+      Dashboard = <CEOCommandCenter />;
   }
+
+  return <Suspense fallback={<Loader />}>{Dashboard}</Suspense>;
 };
 
 export default RoleBasedDashboard;
