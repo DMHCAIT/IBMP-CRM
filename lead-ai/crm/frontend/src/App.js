@@ -26,6 +26,8 @@ const CohortAnalysisPage  = lazy(() => import('./pages/CohortAnalysisPage'));
 const SLAPage             = lazy(() => import('./pages/SLAPage'));
 const ScoreDecayPage            = lazy(() => import('./pages/ScoreDecayPage'));
 const LeadUpdateActivityPage    = lazy(() => import('./pages/LeadUpdateActivityPage'));
+const HRPage                    = lazy(() => import('./pages/HRPage'));
+const AcademicPage              = lazy(() => import('./pages/AcademicPage'));
 import { isFeatureEnabled } from './config/featureFlags';
 import ErrorBoundary from './components/ErrorBoundary';
 import { AuthProvider } from './context/AuthContext';
@@ -103,6 +105,8 @@ function AppRoutes() {
                   <Route path="/sla" element={<SLAPage />} />
                   <Route path="/score-decay" element={<ScoreDecayPage />} />
                   <Route path="/settings" element={<SettingsPage />} />
+                  <Route path="/hr" element={<HRPage />} />
+                  <Route path="/academic" element={<AcademicPage />} />
                   </Routes>
                 </Suspense>
               </ProfessionalLayout>

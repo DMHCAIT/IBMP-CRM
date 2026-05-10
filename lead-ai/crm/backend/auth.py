@@ -114,16 +114,38 @@ def authenticate_user(email: str, password: str):
 
 
 async def get_current_user(token: Optional[str] = Depends(oauth2_scheme)):
-    """Return default Super Admin user - Authentication disabled"""
-    # Return default Super Admin user without any authentication checks
-    # Token parameter ignored - authentication completely bypassed
-    return {
-        'id': 1,
-        'email': 'admin@demo-crm.com',
-        'full_name': 'Super Admin',
-        'role': 'Super Admin',
-        'is_active': True
-    }
+    """Validate JWT token and return the authenticated user from Supabase."""
+    credentials_exception = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Could not validate credentials. Please log in again.",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+
+    if not token:
+        raise credentials_exception
+
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        email: str = payload.get("sub")
+        if not email:
+            raise credentials_exception
+    except JWTError:
+        raise credentials_exception
+
+    if not supabase_data.client:
+        raise HTTPException(status_code=500, detail="Database not configured")
+
+    user = supabase_data.get_user_by_email(email)
+    if not user:
+        raise credentials_exception
+
+    if not user.get("is_active", True):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Account is inactive. Contact your administrator.",
+        )
+
+    return user
 
 
 def require_role(allowed_roles: list):
@@ -139,30 +161,55 @@ def require_role(allowed_roles: list):
     return role_checker
 
 
-# Role-based access helpers
-async def get_current_counselor(current_user = Depends(get_current_user)):
-    """Require Counselor role or higher"""
-    if current_user.get('role') not in ["Counselor", "Team Leader", "Manager", "Super Admin"]:
-        raise HTTPException(status_code=403, detail="Counselor access required")
+# ── All valid roles across all departments ────────────────────────────────
+ALL_ROLES = [
+    "Super Admin",
+    # CEO
+    "CEO",
+    # Marketing
+    "Marketing Manager", "Marketing Executive",
+    # Sales
+    "Sales Manager", "Counselor", "Team Leader",
+    # Academic / Admin
+    "Academic Admin", "Academic Executive",
+    # Accounts
+    "Accounts Manager", "Finance Executive",
+    # HR
+    "HR Manager", "HR Executive",
+    # Legacy (kept for backwards compat)
+    "Manager", "finance",
+]
+
+SENIOR_ROLES = ["Super Admin", "CEO", "Sales Manager", "Marketing Manager",
+                 "Academic Admin", "Accounts Manager", "HR Manager", "Manager"]
+
+
+async def get_current_counselor(current_user=Depends(get_current_user)):
+    """Require Sales department role or higher."""
+    sales_roles = ["Counselor", "Team Leader", "Sales Manager", "Manager",
+                   "Super Admin", "CEO"]
+    if current_user.get('role') not in sales_roles:
+        raise HTTPException(status_code=403, detail="Sales access required")
     return current_user
 
 
-async def get_current_team_leader(current_user = Depends(get_current_user)):
-    """Require Team Leader role or higher"""
-    if current_user.get('role') not in ["Team Leader", "Manager", "Super Admin"]:
+async def get_current_team_leader(current_user=Depends(get_current_user)):
+    """Require Team Leader level or higher."""
+    tl_roles = ["Team Leader", "Sales Manager", "Manager", "Super Admin", "CEO"]
+    if current_user.get('role') not in tl_roles:
         raise HTTPException(status_code=403, detail="Team Leader access required")
     return current_user
 
 
-async def get_current_manager(current_user = Depends(get_current_user)):
-    """Require Manager role or higher"""
-    if current_user.get('role') not in ["Manager", "Super Admin"]:
+async def get_current_manager(current_user=Depends(get_current_user)):
+    """Require Manager level or higher."""
+    if current_user.get('role') not in SENIOR_ROLES:
         raise HTTPException(status_code=403, detail="Manager access required")
     return current_user
 
 
-async def get_current_admin(current_user = Depends(get_current_user)):
-    """Require Super Admin role"""
-    if current_user.get('role') != "Super Admin":
-        raise HTTPException(status_code=403, detail="Super Admin access required")
+async def get_current_admin(current_user=Depends(get_current_user)):
+    """Require Super Admin or CEO."""
+    if current_user.get('role') not in ["Super Admin", "CEO"]:
+        raise HTTPException(status_code=403, detail="Admin access required")
     return current_user

@@ -2,143 +2,84 @@ import React, { useState, useCallback, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
-import { Drawer } from 'antd';
+import { Drawer, Tooltip } from 'antd';
 import {
-  LayoutDashboard,
-  Users,
-  Hospital,
-  BookOpen,
-  BarChart3,
-  ChevronLeft,
-  TrendingUp,
-  GitBranch,
-  UserPlus,
-  Activity,
-  Search,
-  Shield,
-  CalendarClock,
-  DollarSign,
-  Settings,
-  Timer,
-  Users2,
-  ShieldCheck,
-  TrendingDown,
-  ClipboardList,
-  Megaphone,
+  LayoutDashboard, Users, Hospital, BookOpen, BarChart3, ChevronLeft,
+  TrendingUp, GitBranch, UserPlus, Activity, Search, Shield, CalendarClock,
+  DollarSign, Settings, Timer, ShieldCheck, TrendingDown, ClipboardList,
+  Megaphone, GraduationCap, UserCog, LogOut,
 } from 'lucide-react';
 import SmartNotifications from '../../features/notifications/SmartNotifications';
 import { isFeatureEnabled } from '../../config/featureFlags';
-import { authAPI, aiSearchAPI, leadsAPI, usersAPI, dashboardAPI, coursesAPI, systemAPI } from '../../api/api';
+import { aiSearchAPI, leadsAPI, usersAPI, dashboardAPI, coursesAPI, systemAPI } from '../../api/api';
+import { useAuth } from '../../context/AuthContext';
+import { getNavItemsForRole, getDepartment, DEPT_META } from '../../config/rbac';
 
+// ── Icon registry (keeps rbac.js icon-library-agnostic) ──────────────────
+const ICON_MAP = {
+  LayoutDashboard, Users, Hospital, BookOpen, BarChart3, TrendingUp,
+  GitBranch, UserPlus, Activity, Shield, CalendarClock, DollarSign,
+  Settings, Timer, ShieldCheck, TrendingDown, ClipboardList, Megaphone,
+  GraduationCap, UserCog,
+};
 
-// Global Search Component
+// ── Global Search ─────────────────────────────────────────────────────────
 const SearchBar = () => {
-  const [query, setQuery] = useState('');
-  const [results, setResults] = useState([]);
-  const [drawerOpen, setDrawerOpen] = useState(false);
-  const [searching, setSearching] = useState(false);
+  const [query, setQuery]       = useState('');
+  const [results, setResults]   = useState([]);
+  const [drawerOpen, setDrawer] = useState(false);
+  const [searching, setSearch]  = useState(false);
   const navigate = useNavigate();
 
   const handleSearch = async (value) => {
-    if (value.trim().length === 0) {
-      setResults([]);
-      setDrawerOpen(false);
-      return;
-    }
-
-    setSearching(true);
+    if (!value.trim()) { setResults([]); setDrawer(false); return; }
+    setSearch(true);
     try {
-      const response = await aiSearchAPI.search(value);
-      setResults(response.data?.results || []);
-      setDrawerOpen(true);
-    } catch (error) {
-      console.error('Search error:', error);
-      setResults([]);
-    } finally {
-      setSearching(false);
-    }
-  };
-
-  const handleResultClick = (leadId) => {
-    navigate(`/leads/${leadId}`);
-    setDrawerOpen(false);
-    setQuery('');
+      const res = await aiSearchAPI.search(value);
+      setResults(res.data?.results || []);
+      setDrawer(true);
+    } catch { setResults([]); }
+    finally { setSearch(false); }
   };
 
   return (
     <>
       <div style={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: 8,
-        padding: '8px 16px',
-        background: 'var(--bg-secondary)',
-        borderRadius: 8,
-        width: 320,
+        display: 'flex', alignItems: 'center', gap: 8,
+        padding: '8px 16px', background: 'var(--bg-secondary)',
+        borderRadius: 8, width: 280,
       }}>
-        <Search size={16} style={{ color: 'var(--text-tertiary)' }} />
+        <Search size={16} style={{ color: 'var(--text-tertiary)', flexShrink: 0 }} />
         <input
           type="text"
-          placeholder="Search leads..."
+          placeholder="Search leads, students..."
           value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter') {
-              handleSearch(query);
-            }
-          }}
+          onChange={e => setQuery(e.target.value)}
+          onKeyDown={e => e.key === 'Enter' && handleSearch(query)}
           style={{
-            border: 'none',
-            background: 'transparent',
-            outline: 'none',
-            fontSize: 'var(--text-sm)',
-            color: 'var(--text-primary)',
-            width: '100%',
+            border: 'none', background: 'transparent', outline: 'none',
+            fontSize: 'var(--text-sm)', color: 'var(--text-primary)', width: '100%',
           }}
         />
       </div>
 
-      <Drawer
-        title="Search Results"
-        placement="right"
-        onClose={() => setDrawerOpen(false)}
-        open={drawerOpen}
-        width={400}
-      >
+      <Drawer title="Search Results" placement="right" onClose={() => setDrawer(false)} open={drawerOpen} width={400}>
         {searching ? (
-          <div style={{ textAlign: 'center', padding: '24px' }}>
-            <p>Searching...</p>
-          </div>
+          <div style={{ textAlign: 'center', padding: 24 }}>Searching...</div>
         ) : results.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: '24px', color: 'var(--text-secondary)' }}>
+          <div style={{ textAlign: 'center', padding: 24, color: 'var(--text-secondary)' }}>
             {query ? 'No results found' : 'Enter a search query'}
           </div>
         ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-            {results.map((result) => (
-              <motion.div
-                key={result.lead_id}
-                whileHover={{ x: 4 }}
-                onClick={() => handleResultClick(result.lead_id)}
-                style={{
-                  padding: '12px',
-                  background: 'var(--bg-secondary)',
-                  borderRadius: '8px',
-                  cursor: 'pointer',
-                  border: '1px solid var(--border-color)',
-                }}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            {results.map(r => (
+              <motion.div key={r.lead_id} whileHover={{ x: 4 }}
+                onClick={() => { navigate(`/leads/${r.lead_id}`); setDrawer(false); setQuery(''); }}
+                style={{ padding: 12, background: 'var(--bg-secondary)', borderRadius: 8, cursor: 'pointer', border: '1px solid var(--border-color)' }}
               >
-                <div style={{ fontWeight: '600', marginBottom: '4px' }}>
-                  {result.full_name}
-                </div>
-                <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '4px' }}>
-                  {result.course || 'No course'}
-                </div>
-                {result.score && (
-                  <div style={{ fontSize: '11px', color: 'var(--text-tertiary)' }}>
-                    Match score: {(result.score * 100).toFixed(0)}%
-                  </div>
-                )}
+                <div style={{ fontWeight: 600, marginBottom: 4 }}>{r.full_name}</div>
+                <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginBottom: 4 }}>{r.course || 'No course'}</div>
+                {r.score && <div style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>Match: {(r.score * 100).toFixed(0)}%</div>}
               </motion.div>
             ))}
           </div>
@@ -148,265 +89,215 @@ const SearchBar = () => {
   );
 };
 
+// ── Main Layout ───────────────────────────────────────────────────────────
 const ProfessionalLayout = ({ children }) => {
   const [collapsed, setCollapsed] = useState(false);
-  const navigate = useNavigate();
-  const location = useLocation();
-  const queryClient = useQueryClient();
+  const navigate     = useNavigate();
+  const location     = useLocation();
+  const queryClient  = useQueryClient();
+  const { user, logout } = useAuth();
 
-  const currentUser = JSON.parse(localStorage.getItem('crm_user') || '{}');
-  const initials = currentUser.full_name
-    ? currentUser.full_name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()
+  const role       = user?.role || '';
+  const dept       = getDepartment(role);
+  const deptMeta   = DEPT_META[dept] || DEPT_META['Sales'];
+  const initials   = user?.full_name
+    ? user.full_name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()
     : 'U';
 
-  // ── Keep the Render backend warm while any user has the app open ──────────
-  // Render free tier spins down after 15 min of inactivity.
-  // Ping /health every 4 minutes so the server never cold-starts mid-session.
+  // Keep Render backend warm
   useEffect(() => {
-    // Immediate ping on mount so the server wakes up as soon as user logs in
     systemAPI.health().catch(() => {});
-    const id = setInterval(() => {
-      systemAPI.health().catch(() => {});
-    }, 4 * 60 * 1000); // every 4 minutes
+    const id = setInterval(() => systemAPI.health().catch(() => {}), 4 * 60 * 1000);
     return () => clearInterval(id);
   }, []);
 
-  // Prefetch the most-used data when user hovers a nav item
+  // Prefetch on hover
   const prefetchRoute = useCallback((route) => {
     const stale = 10 * 60 * 1000;
-    if (route === '/leads' || route === '/pipeline' || route === '/lead-analysis') {
-      queryClient.prefetchQuery({
-        queryKey: ['prefetch', 'leads'],
-        queryFn: () => leadsAPI.getAll({ limit: 500 }).then(r => r.data),
-        staleTime: stale,
-      });
-    }
-    if (route === '/dashboard' || route === '/followups') {
-      queryClient.prefetchQuery({
-        queryKey: ['prefetch', 'dashboard-stats'],
-        queryFn: () => dashboardAPI.getStats().then(r => r.data),
-        staleTime: stale,
-      });
-    }
-    if (route === '/users' || route === '/user-activity' || route === '/lead-analysis' || route === '/lead-update-activity') {
-      queryClient.prefetchQuery({
-        queryKey: ['prefetch', 'users'],
-        queryFn: () => usersAPI.getAll().then(r => r.data),
-        staleTime: stale,
-      });
-    }
-    if (route === '/courses') {
-      queryClient.prefetchQuery({
-        queryKey: ['prefetch', 'courses'],
-        queryFn: () => coursesAPI.getAll().then(r => r.data),
-        staleTime: stale,
-      });
-    }
+    if (['/leads', '/pipeline', '/lead-analysis'].includes(route))
+      queryClient.prefetchQuery({ queryKey: ['prefetch', 'leads'], queryFn: () => leadsAPI.getAll({ limit: 500 }).then(r => r.data), staleTime: stale });
+    if (['/dashboard', '/followups'].includes(route))
+      queryClient.prefetchQuery({ queryKey: ['prefetch', 'stats'], queryFn: () => dashboardAPI.getStats().then(r => r.data), staleTime: stale });
+    if (['/users', '/user-activity', '/hr'].includes(route))
+      queryClient.prefetchQuery({ queryKey: ['prefetch', 'users'], queryFn: () => usersAPI.getAll().then(r => r.data), staleTime: stale });
+    if (route === '/courses')
+      queryClient.prefetchQuery({ queryKey: ['prefetch', 'courses'], queryFn: () => coursesAPI.getAll().then(r => r.data), staleTime: stale });
   }, [queryClient]);
 
-  const menuItems = [
-    { key: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
-    { key: '/followups', icon: CalendarClock, label: "Today's Follow-ups" },
-    { key: '/leads', icon: Users, label: 'Leads' },
-    { key: '/pipeline', icon: GitBranch, label: 'Pipeline' },
-    { key: '/lead-analysis', icon: TrendingUp, label: 'Lead Analysis' },
-    { key: '/hospitals', icon: Hospital, label: 'Hospitals' },
-    { key: '/courses', icon: BookOpen, label: 'Courses' },
-    { key: '/users', icon: UserPlus, label: 'Team' },
-    { key: '/user-activity', icon: Activity, label: 'User Activity' },
-    { key: '/lead-update-activity', icon: ClipboardList, label: 'Lead Updates' },
-    { key: '/analytics', icon: BarChart3, label: 'Analytics' },
-    { key: '/campaigns', icon: Megaphone, label: 'Campaign Performance' },
-    { key: '/conversion-time', icon: Timer, label: 'Conversion Time' },
-    { key: '/cohort-analysis', icon: Users2, label: 'Cohort Analysis' },
-    { key: '/sla', icon: ShieldCheck, label: 'SLA Tracker' },
-    { key: '/score-decay', icon: TrendingDown, label: 'Score Decay' },
-    { key: '/audit-logs', icon: Shield, label: 'Audit Logs' },
-    { key: '/payments', icon: DollarSign, label: 'Payments' },
-    { key: '/settings', icon: Settings, label: 'Settings' },
-  ];
+  // Department-filtered nav items
+  const navItems = getNavItemsForRole(role);
 
-  // Show all menu items (no role restrictions - authentication disabled)
-  const roleMenuItems = menuItems;
+  const currentLabel = navItems.find(i => i.path === location.pathname)?.label
+    || location.pathname.replace('/', '').replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
+    || 'Dashboard';
+
+  const handleLogout = () => {
+    logout();
+    navigate('/login', { replace: true });
+  };
 
   return (
     <div style={{ display: 'flex', height: '100vh', background: 'var(--bg-secondary)' }}>
-      {/* Sidebar */}
+      {/* ── Sidebar ── */}
       <motion.aside
         initial={false}
         animate={{ width: collapsed ? 64 : 240 }}
         style={{
           background: 'var(--bg-primary)',
           borderRight: '1px solid var(--border)',
-          display: 'flex',
-          flexDirection: 'column',
-          overflow: 'hidden',
+          display: 'flex', flexDirection: 'column', overflow: 'hidden', flexShrink: 0,
         }}
       >
-        {/* Logo */}
-        <div style={{ 
-          height: 64, 
-          display: 'flex', 
-          alignItems: 'center', 
-          padding: collapsed ? '0 16px' : '0 24px',
-          borderBottom: '1px solid var(--border)',
-          gap: 12
+        {/* Logo + company */}
+        <div style={{
+          height: 64, display: 'flex', alignItems: 'center',
+          padding: collapsed ? '0 16px' : '0 20px',
+          borderBottom: '1px solid var(--border)', gap: 10,
         }}>
           <div style={{
-            width: 32,
-            height: 32,
-            borderRadius: 8,
-            background: 'linear-gradient(135deg, var(--accent), #8b5cf6)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontSize: 18,
-            flexShrink: 0
-          }}>
-            🏥
-          </div>
+            width: 34, height: 34, borderRadius: 8,
+            background: 'linear-gradient(135deg, #2563eb, #7c3aed)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            fontSize: 18, flexShrink: 0,
+          }}>🏥</div>
           {!collapsed && (
-            <motion.span
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              style={{ 
-                fontSize: 'var(--text-lg)', 
-                fontWeight: 600,
-                color: 'var(--text-primary)'
-              }}
-            >
-              Med CRM
-            </motion.span>
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+              <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)', lineHeight: 1.2 }}>IBMP CRM</div>
+              <div style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>Medical Education</div>
+            </motion.div>
           )}
         </div>
 
-        {/* Navigation */}
-        <nav style={{ flex: 1, padding: '16px 8px', overflowY: 'auto' }}>
-          {roleMenuItems.map((item) => {
-            const Icon = item.icon;
-            const isActive = location.pathname === item.key;
-            
-            return (
+        {/* Department badge */}
+        {!collapsed && (
+          <div style={{ padding: '10px 20px 4px' }}>
+            <div style={{
+              display: 'inline-flex', alignItems: 'center', gap: 6,
+              padding: '4px 10px', borderRadius: 20,
+              background: deptMeta.bg, color: deptMeta.color,
+              fontSize: 11, fontWeight: 600,
+            }}>
+              <div style={{ width: 6, height: 6, borderRadius: '50%', background: deptMeta.color }} />
+              {deptMeta.label} Dept
+            </div>
+          </div>
+        )}
+
+        {/* Nav items */}
+        <nav style={{ flex: 1, padding: '8px 8px', overflowY: 'auto' }}>
+          {navItems.map((item) => {
+            const Icon = ICON_MAP[item.icon] || LayoutDashboard;
+            const isActive = location.pathname === item.path ||
+              (item.path !== '/dashboard' && location.pathname.startsWith(item.path));
+
+            const btn = (
               <motion.button
-                key={item.key}
-                onClick={() => navigate(item.key)}
-                onMouseEnter={() => prefetchRoute(item.key)}
+                key={item.path}
+                onClick={() => navigate(item.path)}
+                onMouseEnter={() => prefetchRoute(item.path)}
                 whileHover={{ x: 2 }}
                 whileTap={{ scale: 0.98 }}
                 style={{
-                  width: '100%',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 12,
-                  padding: collapsed ? '12px' : '12px 16px',
-                  marginBottom: 4,
-                  borderRadius: 8,
-                  border: 'none',
-                  background: isActive ? 'var(--bg-tertiary)' : 'transparent',
-                  color: isActive ? 'var(--text-primary)' : 'var(--text-secondary)',
-                  cursor: 'pointer',
-                  fontSize: 'var(--text-sm)',
-                  fontWeight: isActive ? 500 : 400,
+                  width: '100%', display: 'flex', alignItems: 'center', gap: 10,
+                  padding: collapsed ? '10px 0' : '10px 12px',
+                  marginBottom: 2, borderRadius: 8, border: 'none',
+                  background: isActive ? `${deptMeta.color}18` : 'transparent',
+                  color: isActive ? deptMeta.color : 'var(--text-secondary)',
+                  cursor: 'pointer', fontSize: 13,
+                  fontWeight: isActive ? 600 : 400,
                   justifyContent: collapsed ? 'center' : 'flex-start',
+                  borderLeft: isActive ? `3px solid ${deptMeta.color}` : '3px solid transparent',
+                  transition: 'all 0.15s',
                 }}
               >
-                <Icon size={20} />
+                <Icon size={18} />
                 {!collapsed && <span>{item.label}</span>}
               </motion.button>
             );
+
+            return collapsed
+              ? <Tooltip key={item.path} title={item.label} placement="right">{btn}</Tooltip>
+              : <React.Fragment key={item.path}>{btn}</React.Fragment>;
           })}
         </nav>
 
-        {/* Collapse Toggle */}
+        {/* Collapse toggle */}
         <div style={{ padding: 8, borderTop: '1px solid var(--border)' }}>
           <button
             onClick={() => setCollapsed(!collapsed)}
             style={{
-              width: '100%',
-              padding: 12,
-              borderRadius: 8,
-              border: 'none',
-              background: 'var(--bg-secondary)',
-              color: 'var(--text-secondary)',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
+              width: '100%', padding: 10, borderRadius: 8, border: 'none',
+              background: 'var(--bg-secondary)', color: 'var(--text-secondary)',
+              cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
             }}
           >
-            <motion.div
-              animate={{ rotate: collapsed ? 180 : 0 }}
-              transition={{ duration: 0.2 }}
-            >
-              <ChevronLeft size={20} />
+            <motion.div animate={{ rotate: collapsed ? 180 : 0 }} transition={{ duration: 0.2 }}>
+              <ChevronLeft size={18} />
             </motion.div>
           </button>
         </div>
       </motion.aside>
 
-      {/* Main Content */}
+      {/* ── Main content ── */}
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
         {/* Header */}
         <header style={{
-          height: 64,
-          background: 'var(--bg-primary)',
+          height: 64, background: 'var(--bg-primary)',
           borderBottom: '1px solid var(--border)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          padding: '0 24px',
+          display: 'flex', alignItems: 'center',
+          justifyContent: 'space-between', padding: '0 24px', gap: 16,
         }}>
-          <h1 style={{ fontSize: 'var(--text-xl)', fontWeight: 600, color: 'var(--text-primary)' }}>
-            {roleMenuItems.find(item => item.key === location.pathname)?.label || 'Dashboard'}
+          <h1 style={{ fontSize: 18, fontWeight: 600, color: 'var(--text-primary)', margin: 0, whiteSpace: 'nowrap' }}>
+            {currentLabel}
           </h1>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-            {/* Search */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginLeft: 'auto' }}>
             <SearchBar />
-
-            {/* Smart Notifications */}
             {isFeatureEnabled('SMART_NOTIFICATIONS') && <SmartNotifications />}
 
-            {/* User Info (no logout - authentication disabled) */}
+            {/* User chip */}
             <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 12,
-              paddingLeft: 16,
-              borderLeft: '1px solid var(--border)',
+              display: 'flex', alignItems: 'center', gap: 10,
+              paddingLeft: 12, borderLeft: '1px solid var(--border)',
             }}>
               <div style={{ textAlign: 'right' }}>
-                <div style={{ fontSize: 'var(--text-sm)', fontWeight: 500, color: 'var(--text-primary)' }}>
-                  {currentUser.full_name || 'User'}
+                <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>
+                  {user?.full_name || 'User'}
                 </div>
-                <div style={{ fontSize: 'var(--text-xs)', color: 'var(--text-tertiary)' }}>
-                  {currentUser.role || ''}
+                <div style={{ fontSize: 11, color: deptMeta.color, fontWeight: 500 }}>
+                  {role}
                 </div>
               </div>
+
+              {/* Avatar */}
               <div style={{
-                width: 40,
-                height: 40,
-                borderRadius: 8,
-                background: 'linear-gradient(135deg, var(--accent), #8b5cf6)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                color: '#fff',
-                fontWeight: 600,
-                fontSize: 'var(--text-sm)',
+                width: 38, height: 38, borderRadius: 8,
+                background: `linear-gradient(135deg, ${deptMeta.color}, #8b5cf6)`,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                color: '#fff', fontWeight: 700, fontSize: 14, flexShrink: 0,
               }}>
                 {initials}
               </div>
+
+              {/* Logout */}
+              <Tooltip title="Sign out">
+                <button
+                  onClick={handleLogout}
+                  style={{
+                    background: 'none', border: 'none', cursor: 'pointer',
+                    color: 'var(--text-tertiary)', padding: 6, borderRadius: 6,
+                    display: 'flex', alignItems: 'center',
+                  }}
+                >
+                  <LogOut size={17} />
+                </button>
+              </Tooltip>
             </div>
           </div>
         </header>
 
-        {/* Page Content */}
-        <main style={{ 
-          flex: 1, 
-          overflow: 'auto', 
-          padding: 24,
-        }}>
+        {/* Page */}
+        <main style={{ flex: 1, overflow: 'auto', padding: 24 }}>
           <motion.div
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
