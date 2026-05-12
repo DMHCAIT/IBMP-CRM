@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Set User Role - Med CRM</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    
+    .container {
+      background: white;
+      border-radius: 16px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+      max-width: 500px;
+      width: 100%;
+      padding: 40px;
+    }
+    
+    h1 {
+      font-size: 28px;
+      margin-bottom: 10px;
+      color: #1a1a1a;
+    }
+    
+    p {
+      color: #666;
+      margin-bottom: 30px;
+    }
+    
+    .role-card {
+      border: 2px solid #e0e0e0;
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 15px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+    
+    .role-card:hover {
+      border-color: #667eea;
+      background: #f8f9ff;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.2);
+    }
+    
+    .role-card.selected {
+      border-color: #667eea;
+      background: linear-gradient(135deg, #667eea15, #764ba215);
+    }
+    
+    .role-title {
+      font-size: 18px;
+      font-weight: 600;
+      color: #1a1a1a;
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    
+    .role-emoji {
+      font-size: 24px;
+    }
+    
+    .role-desc {
+      font-size: 14px;
+      color: #666;
+      margin-bottom: 10px;
+    }
+    
+    .role-pages {
+      font-size: 13px;
+      color: #667eea;
+      font-weight: 500;
+    }
+    
+    button {
+      width: 100%;
+      padding: 16px;
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      color: white;
+      border: none;
+      border-radius: 10px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      margin-top: 20px;
+      transition: all 0.3s ease;
+    }
+    
+    button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
+    }
+    
+    button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    
+    .current-role {
+      background: #f0f0f0;
+      padding: 15px;
+      border-radius: 8px;
+      margin-bottom: 30px;
+      text-align: center;
+    }
+    
+    .current-role span {
+      font-weight: 600;
+      color: #667eea;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🏥 Med CRM - Set User Role</h1>
+    <p>Select a role to test different access levels</p>
+    
+    <div id="current-role" class="current-role" style="display: none;">
+      Current Role: <span id="current-role-name"></span>
+    </div>
+    
+    <div class="role-card" data-role="admin">
+      <div class="role-title">
+        <span class="role-emoji">👑</span>
+        Admin (Superuser)
+      </div>
+      <div class="role-desc">Full system access - manage everything</div>
+      <div class="role-pages">✅ Can see 11 pages including Audit Logs</div>
+    </div>
+    
+    <div class="role-card" data-role="manager">
+      <div class="role-title">
+        <span class="role-emoji">📊</span>
+        Manager (Team Lead)
+      </div>
+      <div class="role-desc">Manage team, assign leads, view team analytics</div>
+      <div class="role-pages">✅ Can see 10 pages (no Audit Logs)</div>
+    </div>
+    
+    <div class="role-card" data-role="counsellor">
+      <div class="role-title">
+        <span class="role-emoji">💼</span>
+        Counsellor (Sales Rep)
+      </div>
+      <div class="role-desc">Manage own leads and track personal performance</div>
+      <div class="role-pages">✅ Can see 8 pages (own data only)</div>
+    </div>
+    
+    <div class="role-card" data-role="finance">
+      <div class="role-title">
+        <span class="role-emoji">💰</span>
+        Finance (Accounts)
+      </div>
+      <div class="role-desc">View revenue, manage payments, export financial data</div>
+      <div class="role-pages">✅ Can see 8 pages (read-only leads)</div>
+    </div>
+    
+    <button id="set-role-btn" disabled>Select a role first</button>
+  </div>
+
+  <script>
+    let selectedRole = null;
+    
+    // Check current role
+    const currentUser = localStorage.getItem('user');
+    if (currentUser) {
+      try {
+        const user = JSON.parse(currentUser);
+        document.getElementById('current-role').style.display = 'block';
+        document.getElementById('current-role-name').textContent = 
+          user.role.charAt(0).toUpperCase() + user.role.slice(1);
+      } catch (e) {
+        console.error('Error parsing user:', e);
+      }
+    }
+    
+    // Handle role card clicks
+    document.querySelectorAll('.role-card').forEach(card => {
+      card.addEventListener('click', () => {
+        // Remove selected class from all cards
+        document.querySelectorAll('.role-card').forEach(c => 
+          c.classList.remove('selected')
+        );
+        
+        // Add selected class to clicked card
+        card.classList.add('selected');
+        
+        // Store selected role
+        selectedRole = card.dataset.role;
+        
+        // Enable button
+        document.getElementById('set-role-btn').disabled = false;
+        document.getElementById('set-role-btn').textContent = 
+          `Set Role as ${selectedRole.charAt(0).toUpperCase() + selectedRole.slice(1)}`;
+      });
+    });
+    
+    // Handle set role button
+    document.getElementById('set-role-btn').addEventListener('click', () => {
+      if (!selectedRole) return;
+      
+      const user = {
+        id: Math.random().toString(36).substr(2, 9),
+        role: selectedRole,
+        name: `${selectedRole.charAt(0).toUpperCase() + selectedRole.slice(1)} User`,
+        email: `${selectedRole}@medcrm.com`
+      };
+      
+      localStorage.setItem('user', JSON.stringify(user));
+      
+      // Show success and redirect
+      alert(`✅ Role set to: ${selectedRole}\n\nRedirecting to CRM...`);
+      
+      // Redirect to main app
+      window.location.href = '/';
+    });
+  </script>
+</body>
+</html>

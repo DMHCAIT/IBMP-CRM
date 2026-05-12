@@ -1,0 +1,128 @@
+# =============================================================================
+# IBMP CRM — Docker Compose (local development)
+# =============================================================================
+#
+# Usage:
+#   cp .env.example .env          # fill in secrets
+#   docker compose up             # starts all services with hot-reload
+#   docker compose up backend     # start only the API
+#   docker compose down -v        # stop and delete volumes
+#
+# Services:
+#   backend   FastAPI (uvicorn --reload)  → http://localhost:8000
+#   frontend  React (CRA dev server)      → http://localhost:3000
+#   redis     Token blocklist store       → localhost:6379
+# =============================================================================
+
+version: "3.9"
+
+# ---------------------------------------------------------------------------
+# Shared defaults
+# ---------------------------------------------------------------------------
+x-backend-env: &backend-env
+  DATABASE_URL:                 ${DATABASE_URL:-sqlite:///./ibmp_crm.db}
+  JWT_SECRET_KEY:               ${JWT_SECRET_KEY:?JWT_SECRET_KEY must be set in .env}
+  ALGORITHM:                    ${ALGORITHM:-HS256}
+  ACCESS_TOKEN_EXPIRE_MINUTES:  ${ACCESS_TOKEN_EXPIRE_MINUTES:-1440}
+  SUPABASE_URL:                 ${SUPABASE_URL:?SUPABASE_URL must be set in .env}
+  SUPABASE_KEY:                 ${SUPABASE_KEY:?SUPABASE_KEY must be set in .env}
+  SUPABASE_SERVICE_KEY:         ${SUPABASE_SERVICE_KEY:-}
+  OPENAI_API_KEY:               ${OPENAI_API_KEY:-}
+  INTERAKT_API_KEY:             ${INTERAKT_API_KEY:-}
+  FRONTEND_URL:                 ${FRONTEND_URL:-http://localhost:3000}
+  ENVIRONMENT:                  ${ENVIRONMENT:-development}
+  LOG_LEVEL:                    ${LOG_LEVEL:-DEBUG}
+  REDIS_URL:                    redis://redis:6379/0
+  GOOGLE_SHEETS_SERVICE_ACCOUNT_JSON: ${GOOGLE_SHEETS_SERVICE_ACCOUNT_JSON:-}
+
+services:
+
+  # ── Redis (token blocklist + optional caching) ───────────────────────────
+  redis:
+    image: redis:7-alpine
+    container_name: ibmp_crm_redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --save 60 1 --loglevel warning
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ── FastAPI backend ───────────────────────────────────────────────────────
+  backend:
+    build:
+      context: ./lead-ai/crm/backend
+      dockerfile: Dockerfile
+      target: development          # uses the dev stage with test deps
+    container_name: ibmp_crm_backend
+    restart: unless-stopped
+    depends_on:
+      redis:
+        condition: service_healthy
+    ports:
+      - "8000:8000"
+    environment:
+      <<: *backend-env
+    volumes:
+      # Hot-reload: mount source so uvicorn --reload picks up changes
+      - ./lead-ai/crm/backend:/app:cached
+      # Keep pip cache outside the container for faster rebuilds
+      - pip_cache:/root/.cache/pip
+    command: >
+      uvicorn main:app
+        --host 0.0.0.0
+        --port 8000
+        --reload
+        --reload-dir /app
+        --log-level ${LOG_LEVEL:-debug}
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/ping"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  # ── React frontend ────────────────────────────────────────────────────────
+  frontend:
+    build:
+      context: ./lead-ai/crm/frontend
+      dockerfile: Dockerfile
+      target: development
+    container_name: ibmp_crm_frontend
+    restart: unless-stopped
+    depends_on:
+      backend:
+        condition: service_healthy
+    ports:
+      - "3000:3000"
+    environment:
+      REACT_APP_API_URL:       http://localhost:8000
+      CHOKIDAR_USEPOLLING:     "true"    # needed for hot-reload inside Docker
+      WATCHPACK_POLLING:       "true"
+      WDS_SOCKET_HOST:         localhost
+      NODE_ENV:                development
+    volumes:
+      # Hot-reload: mount source
+      - ./lead-ai/crm/frontend:/app:cached
+      # Keep node_modules inside container (avoids host/container mismatch)
+      - frontend_node_modules:/app/node_modules
+    command: npm start
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000"]
+      interval: 20s
+      timeout: 5s
+      retries: 5
+      start_period: 60s
+
+# ---------------------------------------------------------------------------
+# Named volumes
+# ---------------------------------------------------------------------------
+volumes:
+  redis_data:
+  pip_cache:
+  frontend_node_modules:
