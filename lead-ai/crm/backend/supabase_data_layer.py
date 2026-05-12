@@ -60,34 +60,10 @@ class SupabaseDataLayer:
     
     def __init__(self):
         self.client = supabase_manager.get_client()
-        self._leads_supports_tenant_id: Optional[bool] = None
 
-    def _leads_table_supports_tenant_id(self) -> bool:
-        """Detect whether the leads table has a tenant_id column."""
-        if self._leads_supports_tenant_id is not None:
-            return self._leads_supports_tenant_id
-
-        if not self.client:
-            self._leads_supports_tenant_id = False
-            return False
-
-        try:
-            # Harmless schema probe: will fail if the column does not exist.
-            self.client.table('leads').select('tenant_id').limit(1).execute()
-            self._leads_supports_tenant_id = True
-        except Exception:
-            self._leads_supports_tenant_id = False
-
-        return self._leads_supports_tenant_id
-
-    def _apply_tenant_id_if_supported(self, data: Dict[str, Any]) -> Dict[str, Any]:
-        """Add tenant_id only when the table schema supports it."""
-        if not self._leads_table_supports_tenant_id():
-            data.pop('tenant_id', None)
-            return data
-
-        # Default tenant matches the one seeded in the SQL migration.
-        data.setdefault('tenant_id', os.getenv('DEFAULT_TENANT_ID', '00000000-0000-0000-0000-000000000001'))
+    def _strip_tenant_id(self, data: Dict[str, Any]) -> Dict[str, Any]:
+        """Always remove tenant_id — the current schema does not use it."""
+        data.pop('tenant_id', None)
         return data
     
     def get_leads(
@@ -301,7 +277,7 @@ class SupabaseDataLayer:
                 iso = value.isoformat()
                 data[key] = iso if iso.endswith('Z') or '+' in iso else iso + 'Z'
         cleaned_data = {k: v for k, v in data.items() if v is not None}
-        cleaned_data = self._apply_tenant_id_if_supported(cleaned_data)
+        cleaned_data = self._strip_tenant_id(cleaned_data)
         
         NEW_COLUMNS = {
             'company', 'qualification', 'utm_source', 'utm_medium', 'utm_campaign',
@@ -349,22 +325,21 @@ class SupabaseDataLayer:
                     iso = value.isoformat()
                     data[key] = iso if iso.endswith('Z') or '+' in iso else iso + 'Z'
             cleaned_data = {k: v for k, v in data.items() if v is not None}
-            cleaned_data = self._apply_tenant_id_if_supported(cleaned_data)
+            cleaned_data = self._strip_tenant_id(cleaned_data)
             try:
                 response = self.client.table('leads').insert(cleaned_data).execute()
                 return response.data[0] if response.data else None
             except Exception as e:
                 # On ANY error, strip ALL optional columns and retry once.
-                # Postgres only reports one missing column at a time, so checking
-                # the error string misses subsequent missing columns.
                 logger.warning(f"Lead insert failed ({e}) — retrying without optional columns")
-                # Remove tenant_id as a last-resort fallback when the schema does
-                # not match the expected multi-tenant migration state.
-                cleaned_data.pop('tenant_id', None)
                 for col in self._OPTIONAL_COLUMNS:
                     cleaned_data.pop(col, None)
-                response = self.client.table('leads').insert(cleaned_data).execute()
-                return response.data[0] if response.data else None
+                try:
+                    response = self.client.table('leads').insert(cleaned_data).execute()
+                    return response.data[0] if response.data else None
+                except Exception as e2:
+                    logger.error(f"Lead insert retry also failed: {e2}", exc_info=True)
+                    raise RuntimeError(str(e2)) from None
         except Exception as e:
             logger.error(f"Error creating lead in Supabase: {e}", exc_info=True)
             return None

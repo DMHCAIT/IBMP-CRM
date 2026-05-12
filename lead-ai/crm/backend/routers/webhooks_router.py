@@ -31,8 +31,12 @@ router = APIRouter(prefix="/api/webhooks", tags=["Webhooks"])
 def _safe_exc_message(exc: Exception) -> str:
     """Return a stable, readable exception message (never raises)."""
     try:
+        # KeyError('code') from the supabase/postgrest library gives str == "'code'"
+        # which is confusing — surface the full repr instead.
+        if isinstance(exc, KeyError):
+            return f"KeyError: {repr(exc.args[0])} — Supabase schema mismatch or unexpected API response"
         txt = str(exc)
-        if txt:
+        if txt and txt not in ("", "''"):
             return txt
     except Exception:
         pass
