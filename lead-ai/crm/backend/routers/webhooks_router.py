@@ -141,6 +141,64 @@ async def google_sheets_webhook(
     return JSONResponse(status_code=status_code, content=result.to_dict())
 
 
+# ── Sync-all push from Apps Script ───────────────────────────────────────────
+
+@router.post("/sync-all-from-sheet")
+async def sync_all_from_sheet(
+    request: Request,
+    x_webhook_secret: str = Header(default="", alias="X-Webhook-Secret"),
+):
+    """
+    Receives ALL sheet rows pushed by syncAllLeads() in the Apps Script.
+    No Google Cloud credentials required — Apps Script pushes to us.
+
+    Body: { "leads": [ { ...lead fields... }, ... ] }
+    Returns: { "created": N, "updated": N, "results": [...] }
+    """
+    configured_secret = os.getenv("SHEETS_WEBHOOK_SECRET", "")
+    if configured_secret and x_webhook_secret != configured_secret:
+        raise HTTPException(status_code=403, detail="Invalid webhook secret")
+
+    raw_body = await request.body()
+    try:
+        payload = json.loads(raw_body)
+    except json.JSONDecodeError:
+        raise HTTPException(status_code=400, detail="Invalid JSON")
+
+    leads = payload.get("leads", [])
+    if not isinstance(leads, list):
+        raise HTTPException(status_code=400, detail="'leads' must be a list")
+
+    from supabase_data_layer import supabase_data
+
+    created  = 0
+    updated  = 0
+    results  = []
+
+    for lead in leads[:500]:
+        lead_id = lead.pop("lead_id", None)
+        lead.pop("_sheet_name", None)
+        lead.pop("_row_number", None)
+        lead = {k: (v if v != "" else None) for k, v in lead.items()}
+
+        try:
+            if lead_id:
+                supabase_data.update_lead(lead_id, lead)
+                updated += 1
+                results.append({"lead_id": lead_id, "action": "updated"})
+            else:
+                new_lead = supabase_data.create_lead(lead)
+                new_id   = new_lead.get("lead_id", "") if new_lead else ""
+                created += 1
+                results.append({"lead_id": new_id, "action": "created"})
+        except Exception as exc:
+            logger.warning(f"sync-all-from-sheet lead error: {exc}")
+            results.append({"lead_id": lead_id or "", "action": "error", "detail": str(exc)})
+
+    logger.info(f"sync-all-from-sheet: created={created} updated={updated} total={len(leads)}")
+    return {"created": created, "updated": updated, "total": len(leads), "results": results}
+
+
 # ── Dev-only test endpoint ────────────────────────────────────────────────────
 
 @router.post("/test")

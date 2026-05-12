@@ -31,7 +31,7 @@ const campaignAPI = {
     return api.get(`/api/analytics/campaigns/leads?${params.toString()}`);
   },
   getCampaignDetail: (campaignName) => api.get(`/api/analytics/campaigns/${encodeURIComponent(campaignName)}`),
-  fetchFromSheet:   () => api.get('/api/sync/google-sheets/fetch-leads'),
+  fetchFromSheet:   () => api.get('/api/analytics/campaigns/leads?limit=5000'),
 };
 
 const COLORS = ['#6366f1', '#10b981', '#f59e0b', '#ef4444', '#3b82f6', '#8b5cf6', '#ec4899', '#14b8a6'];
@@ -54,14 +54,10 @@ const CampaignAnalyticsPage = () => {
     setSheetFetching(true);
     try {
       const res = await campaignAPI.fetchFromSheet();
-      const { leads = [], total = 0, error } = res.data;
-      if (error) {
-        notification.error({ message: 'Sheet Error', description: error });
-      } else {
-        setSheetFetchedLeads(leads);
-        setActiveTab('sheet');
-        notification.success({ message: `Fetched ${total} leads from Google Sheet` });
-      }
+      const leads = Array.isArray(res.data) ? res.data : (res.data?.leads || []);
+      setSheetFetchedLeads(leads);
+      setActiveTab('sheet');
+      notification.success({ message: `Loaded ${leads.length} sheet leads from CRM` });
     } catch (err) {
       notification.error({ message: 'Failed to fetch from sheet', description: err?.response?.data?.detail || err.message });
     } finally {
@@ -392,8 +388,8 @@ const CampaignAnalyticsPage = () => {
                 {sheetFetchedLeads === null ? (
                   <div style={{ textAlign: 'center', padding: 60, color: '#9ca3af' }}>
                     <SyncOutlined style={{ fontSize: 40, marginBottom: 16, color: '#10b981' }} />
-                    <div style={{ fontSize: 16, fontWeight: 600 }}>Click "Fetch from Sheet" to load live data</div>
-                    <div style={{ marginTop: 8, fontSize: 13 }}>Reads directly from your connected Google Sheet</div>
+                    <div style={{ fontSize: 16, fontWeight: 600 }}>Click "Fetch from Sheet" to load synced leads</div>
+                    <div style={{ marginTop: 8, fontSize: 13 }}>First sync from your Google Sheet using the "IBMP CRM → Sync All Leads to CRM" menu in the sheet</div>
                     <Button type="primary" icon={<SyncOutlined />} style={{ marginTop: 20, background: '#10b981', borderColor: '#10b981' }}
                       loading={sheetFetching} onClick={handleFetchFromSheet}>
                       Fetch from Sheet
