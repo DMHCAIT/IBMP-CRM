@@ -14,10 +14,11 @@
 import React from 'react';
 
 // ── Sentry integration (optional — no-op if not installed) ────────────────
+// Dynamic require so webpack doesn't fail the build when @sentry/react is absent.
 let Sentry = null;
 try {
-  // eslint-disable-next-line
-  Sentry = require('@sentry/react');
+  const mod = '@sentry/' + 'react'; // eslint-disable-line
+  Sentry = require(mod);            // eslint-disable-line
 } catch (_) {
   // Sentry not installed — silently skip
 }
