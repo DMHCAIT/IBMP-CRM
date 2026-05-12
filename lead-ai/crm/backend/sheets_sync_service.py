@@ -54,34 +54,68 @@ WEBHOOK_SECRET: str = os.getenv("SHEETS_WEBHOOK_SECRET", "")
 # Only fields listed here are accepted from the sheet (whitelist approach).
 # Keys are normalised (stripped, lowercased, underscored).
 SHEET_TO_CRM: Dict[str, str] = {
-    # Core fields admins commonly edit in sheets
-    "full_name":            "full_name",
-    "name":                 "full_name",
-    "email":                "email",
-    "phone":                "phone",
-    "whatsapp":             "whatsapp",
-    "country":              "country",
-    "source":               "source",
-    "course_interested":    "course_interested",
-    "course":               "course_interested",
-    "status":               "status",
-    "lead_status":          "status",
-    "assigned_to":          "assigned_to",
-    "counselor":            "assigned_to",
-    "follow_up_date":       "follow_up_date",
-    "followup_date":        "follow_up_date",
-    "next_action":          "next_action",
-    "priority_level":       "priority_level",
-    "priority":             "priority_level",
-    "expected_revenue":     "expected_revenue",
-    "actual_revenue":       "actual_revenue",
-    "loss_reason":          "loss_reason",
-    "loss_note":            "loss_note",
-    "qualification":        "qualification",
-    "company":              "company",
-    "utm_source":           "utm_source",
-    "utm_medium":           "utm_medium",
-    "utm_campaign":         "utm_campaign",
+    # Core identity
+    "full_name":                    "full_name",
+    "name":                         "full_name",
+
+    # Contact
+    "email":                        "email",
+    "phone":                        "phone",
+    "phone_number":                 "phone",           # Meta sheet column
+    "whatsapp":                     "whatsapp",
+
+    # Location
+    "country":                      "country",
+    "city":                         "city",
+
+    # Source / status
+    "source":                       "source",
+    "platform":                     "campaign_medium", # Meta sheet: Facebook/Instagram
+    "status":                       "status",
+    "lead_status":                  "status",          # Meta sheet column
+
+    # Course
+    "course_interested":            "course_interested",
+    "course":                       "course_interested",
+
+    # Assignment & follow-up
+    "assigned_to":                  "assigned_to",
+    "counselor":                    "assigned_to",
+    "lead_owner":                   "assigned_to",     # Meta sheet column
+    "follow_up_date":               "follow_up_date",
+    "followup_date":                "follow_up_date",
+    "next_action":                  "next_action",
+
+    # Priority & qualification
+    "priority_level":               "priority_level",
+    "priority":                     "priority_level",
+    "qualification":                "qualification",
+    "your_highest_qualification":   "qualification",   # Meta sheet column (normalised)
+
+    # Revenue & loss
+    "expected_revenue":             "expected_revenue",
+    "actual_revenue":               "actual_revenue",
+    "loss_reason":                  "loss_reason",
+    "loss_note":                    "loss_note",
+
+    # Company & notes
+    "company":                      "company",
+    "notes":                        "notes",
+
+    # UTM
+    "utm_source":                   "utm_source",
+    "utm_medium":                   "utm_medium",
+    "utm_campaign":                 "utm_campaign",
+
+    # Campaign / marketing
+    "campaign_name":                "campaign_name",   # Meta sheet column
+    "campaign_medium":              "campaign_medium",
+    "campaign_group":               "campaign_group",
+    "ad_name":                      "ad_name",         # Meta sheet column
+    "adset_name":                   "adset_name",      # Meta sheet column
+    "form_name":                    "form_name",       # Meta sheet column
+    "lead_quality":                 "lead_quality",
+    "lead_rating":                  "lead_rating",
 }
 
 # Fields that must never be overwritten by the sheet

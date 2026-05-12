@@ -204,6 +204,17 @@ async def campaign_overview():
             if lead.get("status") == "Enrolled":
                 medium_stats[m]["conversions"] += 1
 
+        by_medium = []
+        for m, s in medium_stats.items():
+            m_total = max(s["leads"], 1)
+            by_medium.append({
+                "medium":          m,
+                "leads":           s["leads"],
+                "conversions":     s["conversions"],
+                "revenue":         round(s["revenue"], 2),
+                "conversion_rate": round(s["conversions"] / m_total * 100, 2),
+            })
+
         return {
             "total_leads":       total,
             "total_campaigns":   total_camp,
@@ -211,8 +222,7 @@ async def campaign_overview():
             "expected_revenue":  round(total_exp, 2),
             "conversion_rate":   round((converted / total * 100) if total else 0, 2),
             "hot_warm_rate":     round((hot_warm / total * 100) if total else 0, 2),
-            "by_medium": [{"medium": m, "leads": s["leads"], "revenue": round(s["revenue"], 2), "conversions": s["conversions"]}
-                          for m, s in medium_stats.items()],
+            "by_medium":         by_medium,
         }
     except Exception as exc:
         logger.error(f"Campaign overview error: {exc}")
@@ -224,7 +234,7 @@ async def campaign_list():
     """Per-campaign performance list."""
     try:
         response = supabase_data.client.table("leads").select(
-            "campaign_name,campaign_medium,status,ai_score,actual_revenue,expected_revenue,created_at"
+            "campaign_name,campaign_medium,campaign_group,status,ai_segment,ai_score,actual_revenue,expected_revenue,phone,created_at"
         ).execute()
         leads = response.data or []
 
@@ -232,20 +242,48 @@ async def campaign_list():
         for lead in leads:
             name = lead.get("campaign_name") or "Unknown"
             if name not in campaigns:
-                campaigns[name] = {"name": name, "medium": lead.get("campaign_medium"), "leads": 0,
-                                   "revenue": 0, "expected_revenue": 0, "conversions": 0, "hot_warm": 0}
-            campaigns[name]["leads"] += 1
-            campaigns[name]["revenue"] += lead.get("actual_revenue", 0) or 0
-            campaigns[name]["expected_revenue"] += lead.get("expected_revenue", 0) or 0
-            if lead.get("status") == "Enrolled":
-                campaigns[name]["conversions"] += 1
-            if (lead.get("ai_score") or 0) >= 50:
-                campaigns[name]["hot_warm"] += 1
+                campaigns[name] = {
+                    "campaign_name":   name,
+                    "campaign_medium": lead.get("campaign_medium") or "Unknown",
+                    "campaign_group":  lead.get("campaign_group") or "",
+                    "total_leads":     0,
+                    "hot_leads":       0,
+                    "warm_leads":      0,
+                    "cold_leads":      0,
+                    "converted":       0,
+                    "total_revenue":   0.0,
+                    "contacted":       0,
+                }
+            c = campaigns[name]
+            c["total_leads"] += 1
+            c["total_revenue"] += lead.get("actual_revenue", 0) or 0
 
-        result = list(campaigns.values())
-        for c in result:
-            c["conversion_rate"] = round((c["conversions"] / max(c["leads"], 1)) * 100, 2)
-        result.sort(key=lambda x: x["leads"], reverse=True)
+            seg = (lead.get("ai_segment") or "").lower()
+            if seg == "hot":
+                c["hot_leads"] += 1
+            elif seg == "warm":
+                c["warm_leads"] += 1
+            elif seg == "cold":
+                c["cold_leads"] += 1
+
+            if lead.get("status") == "Enrolled":
+                c["converted"] += 1
+
+            # Contact rate: leads whose status is not Fresh
+            if lead.get("status") and lead["status"] != "Fresh":
+                c["contacted"] += 1
+
+        result = []
+        for c in campaigns.values():
+            total = max(c["total_leads"], 1)
+            c["conversion_rate"]    = round(c["converted"] / total * 100, 2)
+            c["contact_rate"]       = round(c["contacted"] / total * 100, 2)
+            c["avg_revenue_per_lead"] = round(c["total_revenue"] / total, 2)
+            c["total_revenue"]      = round(c["total_revenue"], 2)
+            del c["contacted"]
+            result.append(c)
+
+        result.sort(key=lambda x: x["total_leads"], reverse=True)
         return result
     except Exception as exc:
         logger.error(f"Campaign list error: {exc}")

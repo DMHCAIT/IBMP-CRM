@@ -380,6 +380,22 @@ async def bulk_create_leads(request: Request, background_tasks: BackgroundTasks,
                 "actual_revenue":         db_lead.actual_revenue or 0.0,
                 "buying_signal_strength": db_lead.buying_signal_strength or 0.0,
                 "churn_risk":             db_lead.churn_risk or 0.0,
+                # Extra fields from LeadCreate
+                "qualification":          getattr(lead, "qualification", None),
+                "company":                getattr(lead, "company", None),
+                "city":                   getattr(lead, "city", None),
+                "follow_up_date":         lead.follow_up_date.isoformat() if getattr(lead, "follow_up_date", None) else None,
+                "utm_source":             getattr(lead, "utm_source", None),
+                "utm_medium":             getattr(lead, "utm_medium", None),
+                "utm_campaign":           getattr(lead, "utm_campaign", None),
+                "campaign_name":          getattr(lead, "campaign_name", None),
+                "campaign_medium":        getattr(lead, "campaign_medium", None),
+                "campaign_group":         getattr(lead, "campaign_group", None),
+                "lead_quality":           getattr(lead, "lead_quality", None),
+                "lead_rating":            getattr(lead, "lead_rating", None),
+                "ad_name":                getattr(lead, "ad_name", None) if hasattr(lead, "ad_name") else None,
+                "adset_name":             getattr(lead, "adset_name", None) if hasattr(lead, "adset_name") else None,
+                "form_name":              getattr(lead, "form_name", None) if hasattr(lead, "form_name") else None,
             }
             payload = {k: v for k, v in payload.items() if v is not None}
             created = supabase_data.create_lead(payload)

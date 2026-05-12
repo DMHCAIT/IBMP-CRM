@@ -33,25 +33,82 @@ var LEADS_ENDPOINT    = CRM_URL + "/api/leads/bulk-create";
  * Add or rename columns here to match your sheet headers.
  */
 var COLUMN_MAP = {
-  "Full Name":         "full_name",
-  "Name":              "full_name",
-  "Email":             "email",
-  "Phone":             "phone",
-  "WhatsApp":          "whatsapp",
-  "Country":           "country",
-  "Source":            "source",
-  "Course":            "course_interested",
-  "Course Interested": "course_interested",
-  "Status":            "status",
-  "Lead Status":       "status",
-  "Assigned To":       "assigned_to",
-  "Counselor":         "assigned_to",
-  "Follow Up Date":    "follow_up_date",
-  "Next Action":       "next_action",
-  "Priority":          "priority_level",
-  "Qualification":     "qualification",
-  "Company":           "company",
-  "Notes":             "notes",
+  // Name
+  "Full Name":                   "full_name",
+  "Name":                        "full_name",
+  "full_name":                   "full_name",
+
+  // Contact
+  "Email":                       "email",
+  "email":                       "email",
+  "Phone":                       "phone",
+  "Phone Number":                "phone",
+  "phone_number":                "phone",           // Meta sheet column
+  "WhatsApp":                    "whatsapp",
+  "whatsapp":                    "whatsapp",
+
+  // Location
+  "Country":                     "country",
+  "country":                     "country",
+  "City":                        "city",
+  "city":                        "city",
+
+  // Source / Status
+  "Source":                      "source",
+  "source":                      "source",
+  "Platform":                    "campaign_medium", // Meta sheet: Facebook/Instagram
+  "platform":                    "campaign_medium",
+  "Status":                      "status",
+  "Lead Status":                 "status",
+  "lead_status":                 "status",          // Meta sheet column
+
+  // Course
+  "Course":                      "course_interested",
+  "Course Interested":           "course_interested",
+  "course_interested":           "course_interested",
+
+  // Assignment & follow-up
+  "Assigned To":                 "assigned_to",
+  "Counselor":                   "assigned_to",
+  "Lead Owner":                  "assigned_to",
+  "lead_owner":                  "assigned_to",
+  "Follow Up Date":              "follow_up_date",
+  "follow_up_date":              "follow_up_date",
+  "Next Action":                 "next_action",
+  "next_action":                 "next_action",
+
+  // Priority & qualification
+  "Priority":                    "priority_level",
+  "priority_level":              "priority_level",
+  "Qualification":               "qualification",
+  "Your Highest Qualification:": "qualification",   // Meta sheet column (with colon)
+  "your_highest_qualification:": "qualification",
+  "Your Highest Qualification":  "qualification",
+  "your_highest_qualification":  "qualification",
+
+  // Company & notes
+  "Company":                     "company",
+  "company":                     "company",
+  "Notes":                       "notes",
+  "notes":                       "notes",
+
+  // Campaign / marketing fields
+  "Campaign Name":               "campaign_name",
+  "campaign_name":               "campaign_name",   // Meta sheet column
+  "Campaign Medium":             "campaign_medium",
+  "campaign_medium":             "campaign_medium",
+  "Campaign Group":              "campaign_group",
+  "campaign_group":              "campaign_group",
+  "Ad Name":                     "ad_name",
+  "ad_name":                     "ad_name",         // Meta sheet column
+  "Adset Name":                  "adset_name",
+  "adset_name":                  "adset_name",      // Meta sheet column
+  "Form Name":                   "form_name",
+  "form_name":                   "form_name",       // Meta sheet column
+  "Lead Quality":                "lead_quality",
+  "lead_quality":                "lead_quality",
+  "Lead Rating":                 "lead_rating",
+  "lead_rating":                 "lead_rating",
 };
 
 /** Column that stores the CRM Lead ID (e.g. "LEAD2605XXXX"). */
