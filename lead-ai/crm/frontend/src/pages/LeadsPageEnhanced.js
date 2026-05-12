@@ -22,7 +22,7 @@ import ChatDrawer from '../components/ChatDrawer';
 import DuplicateDetectionModal from '../components/leads/DuplicateDetectionModal';
 import FieldMappingModal from '../components/leads/FieldMappingModal';
 import WhatsAppTemplateDrawer from '../components/whatsapp/WhatsAppTemplateDrawer';
-import { leadsAPI, coursesAPI, counselorsAPI, usersAPI, duplicatesAPI, decayAPI } from '../api/api';
+import { leadsAPI, coursesAPI, counselorsAPI, usersAPI, duplicatesAPI, decayAPI, googleSheetsAPI } from '../api/api';
 import { useAuth } from '../context/AuthContext';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
@@ -229,6 +229,7 @@ const LeadsPageEnhanced = () => {
   const [importData, setImportData] = useState([]);
   const [importErrors, setImportErrors] = useState([]);
   const [importProgress, setImportProgress] = useState(0);
+  const [sheetSyncing, setSheetSyncing] = useState(false);
   
   // Field mapping state
   const [mappingVisible, setMappingVisible] = useState(false);
@@ -764,6 +765,33 @@ const LeadsPageEnhanced = () => {
     setFieldMapping({});
   };
 
+  // ── Google Sheets Sync ────────────────────────────────────────────────────
+  const handleGoogleSheetsSync = async () => {
+    setSheetSyncing(true);
+    message.loading({ content: 'Fetching leads from Google Sheet...', key: 'sheets-sync', duration: 0 });
+    try {
+      const res = await googleSheetsAPI.syncAll();
+      const data = res.data || {};
+      if (data.status === 'success') {
+        message.success({
+          content: data.synced > 0
+            ? `Imported ${data.synced} new leads as Fresh Leads${data.duplicates ? ` (${data.duplicates} duplicates skipped)` : ''}`
+            : data.message || 'No new leads to import',
+          key: 'sheets-sync',
+          duration: 5,
+        });
+        if (data.synced > 0) refetch();
+      } else {
+        message.error({ content: data.message || 'Sync failed', key: 'sheets-sync', duration: 5 });
+      }
+    } catch (err) {
+      const detail = err.response?.data?.detail || err.message;
+      message.error({ content: `Google Sheets sync failed: ${detail}`, key: 'sheets-sync', duration: 5 });
+    } finally {
+      setSheetSyncing(false);
+    }
+  };
+
   // ── Export helpers ──────────────────────────────────────────────────────────
   const [isExporting, setIsExporting] = React.useState(false);
 
@@ -1296,6 +1324,16 @@ const LeadsPageEnhanced = () => {
             <Button icon={<SyncOutlined />} onClick={() => { setAdvFilters({}); setFilters({}); setSearchText(''); setQuickFilter('all'); message.success('Filters cleared'); }}>Clear</Button>
             <Button icon={<DownloadOutlined />} onClick={downloadTemplate}>Template</Button>
             <Button icon={<ImportOutlined />} onClick={() => { resetImport(); setImportVisible(true); }}>Import</Button>
+            <Tooltip title="Fetch all leads from connected Google Sheet into Fresh Leads">
+              <Button
+                icon={<SyncOutlined spin={sheetSyncing} />}
+                onClick={handleGoogleSheetsSync}
+                loading={sheetSyncing}
+                style={{ borderColor: '#34a853', color: sheetSyncing ? undefined : '#34a853' }}
+              >
+                Google Sheets
+              </Button>
+            </Tooltip>
             <Dropdown
               menu={{
                 items: [

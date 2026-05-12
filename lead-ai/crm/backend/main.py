@@ -4841,7 +4841,10 @@ async def google_sheets_sync_status():
                 "sheet_id": os.getenv('GOOGLE_SHEET_ID', '1icOnwhO-kqdw-h716CBuQ01J5Anhl-SwqXBctY0qfZU'),
                 "sheet_name": os.getenv('GOOGLE_SHEET_NAME', 'Sheet1'),
                 "sync_interval": "5 minutes",
-                "credentials_configured": os.path.exists('google-credentials.json')
+                "credentials_configured": bool(
+                    os.getenv('GOOGLE_SHEETS_SERVICE_ACCOUNT_JSON', '').strip()
+                    or os.path.exists(os.getenv('GOOGLE_SHEETS_CREDENTIALS_PATH', 'google-credentials.json'))
+                ),
             }
         }
     except Exception as e:
@@ -4888,6 +4891,21 @@ async def sync_google_sheets_now():
         return result
     except Exception as e:
         logger.error(f"Error during sync: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/sync/google-sheets/sync-all")
+async def sync_all_google_sheets_leads():
+    """
+    Sync ALL leads from the connected Google Sheet into the CRM as Fresh Leads.
+    Ignores Sync_Status — use for initial full import when connecting a new sheet.
+    """
+    try:
+        from lead_sync_service import lead_sync_service
+        logger.info("Full sheet sync triggered from API")
+        result = lead_sync_service.sync_all_leads()
+        return result
+    except Exception as e:
+        logger.error(f"Error during full sync: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/api/sync/google-sheets/test-connection")

@@ -277,6 +277,15 @@ export const systemAPI = {
   mlModelInfo:() => api.get('/api/ml/model-info'),
 };
 
+// Google Sheets Sync API
+export const googleSheetsAPI = {
+  getStatus:       () => api.get('/api/sync/google-sheets/status'),
+  testConnection:  () => api.get('/api/sync/google-sheets/test-connection'),
+  triggerSync:     () => api.post('/api/sync/google-sheets/trigger'),
+  syncNow:         () => api.post('/api/sync/google-sheets/sync-now'),
+  syncAll:         () => api.post('/api/sync/google-sheets/sync-all'),
+};
+
 // Tenants API (multi-tenancy / SaaS onboarding)
 export const tenantsAPI = {
   create:           (data)          => api.post('/api/tenants', data),
