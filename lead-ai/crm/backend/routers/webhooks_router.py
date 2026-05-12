@@ -215,7 +215,7 @@ async def sync_all_from_sheet(
                 _ts   = datetime.now(timezone.utc).strftime("%y%m%d%H%M%S")
                 _rand = _uuid.uuid4().hex[:8].upper()
                 lead["lead_id"] = f"LEAD{_ts}{_rand}"
-                lead.setdefault("status", "Fresh")
+                lead.setdefault("status", "FRESH")
                 lead.setdefault("source", "Google Sheet")
 
                 new_lead = supabase_data.create_lead(lead)

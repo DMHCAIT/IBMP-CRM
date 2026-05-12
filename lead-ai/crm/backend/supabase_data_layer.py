@@ -31,6 +31,28 @@ _SOURCE_ALIAS_MAP = {
 }
 _CANONICAL_SOURCES = {'Website', 'Instagram', 'Facebook', 'Referral', 'WhatsApp'}
 
+_STATUS_ALIAS_MAP = {
+    'fresh': 'FRESH',
+    'new': 'FRESH',
+    'follow up': 'FOLLOW_UP',
+    'follow-up': 'FOLLOW_UP',
+    'follow_up': 'FOLLOW_UP',
+    'warm': 'WARM',
+    'hot': 'HOT',
+    'not interested': 'NOT_INTERESTED',
+    'not_interested': 'NOT_INTERESTED',
+    'junk': 'JUNK',
+    'not answering': 'NOT_ANSWERING',
+    'not_answering': 'NOT_ANSWERING',
+    'enrolled': 'ENROLLED',
+    'success': 'ENROLLED',
+    'won': 'ENROLLED',
+    'converted': 'ENROLLED',
+}
+_CANONICAL_STATUSES = {
+    'FRESH', 'FOLLOW_UP', 'WARM', 'HOT', 'NOT_INTERESTED', 'JUNK', 'NOT_ANSWERING', 'ENROLLED'
+}
+
 
 def _normalise_source_str(raw: str) -> str:
     """Return canonical source for a raw string"""
@@ -54,6 +76,29 @@ def _normalise_lead_source(lead: dict) -> dict:
         normalised = _normalise_source_str(src)
         if normalised != src:
             lead = {**lead, 'source': normalised}
+    return lead
+
+
+def _normalise_status_str(raw: str) -> str:
+    """Return canonical LeadStatus enum literal for a raw status string."""
+    if not raw:
+        return 'FRESH'
+    upper = raw.strip().upper()
+    if upper in _CANONICAL_STATUSES:
+        return upper
+    lower = raw.strip().lower()
+    return _STATUS_ALIAS_MAP.get(lower, 'FRESH')
+
+
+def _normalise_lead_status(lead: dict) -> dict:
+    """Return a copy of lead dict with status normalised to LeadStatus enum."""
+    status = lead.get('status')
+    if status is None or status == '':
+        return {**lead, 'status': 'FRESH'}
+    if isinstance(status, str):
+        normalised = _normalise_status_str(status)
+        if normalised != status:
+            return {**lead, 'status': normalised}
     return lead
 
 
@@ -273,6 +318,7 @@ class SupabaseDataLayer:
     
     def update_lead(self, lead_id: str, data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
         """Update lead"""
+        data = _normalise_lead_status(data)
         data['updated_at'] = datetime.utcnow().isoformat() + 'Z'
         for key, value in list(data.items()):
             if isinstance(value, datetime):
@@ -352,6 +398,8 @@ class SupabaseDataLayer:
         """Create new lead via direct HTTP to bypass postgrest-py KeyError bug.
         Retries without optional columns on schema errors.
         Raises RuntimeError on failure so callers see the real DB error."""
+        data = _normalise_lead_source(data)
+        data = _normalise_lead_status(data)
         now = datetime.utcnow().isoformat() + 'Z'
         data['created_at'] = now
         data['updated_at'] = now
