@@ -297,6 +297,7 @@ const LeadsPageEnhanced = () => {
       limit: pageSize,
     };
 
+    if (quickFilter === 'fresh') params.status = 'Fresh';
     if (quickFilter === 'hot') params.status = 'Hot';
     if (quickFilter === 'warm') params.status = 'Warm';
     if (quickFilter === 'followup_today') {
@@ -1272,6 +1273,7 @@ const LeadsPageEnhanced = () => {
             <Segmented value={quickFilter} onChange={setQuickFilter}
               options={[
                 { label: 'All', value: 'all' },
+                { label: '🆕 Fresh', value: 'fresh' },
                 { label: '🔥 Hot', value: 'hot' },
                 { label: '⚡ Warm', value: 'warm' },
                 { label: '📅 Created Today', value: 'today' },
@@ -1345,10 +1347,27 @@ const LeadsPageEnhanced = () => {
         {selectedRows.length > 0 && (
           <Alert style={{ marginBottom: 12 }}
             message={
-              <Space>
+              <Space wrap>
                 <Text strong>{selectedRows.length} selected</Text>
                 <Button size="small" onClick={() => setSelectedRows(filteredLeads.map(l => l.lead_id))}>Select All {filteredLeads.length}</Button>
                 <Button size="small" onClick={() => setSelectedRows([])}>Clear</Button>
+                <Select
+                  size="small"
+                  placeholder="Assign to user..."
+                  showSearch
+                  style={{ width: 200 }}
+                  options={users.map(u => ({ label: `${u.full_name} (${u.role})`, value: u.full_name }))}
+                  onChange={async (userName) => {
+                    try {
+                      await leadsAPI.bulkUpdate(selectedRows, { assigned_to: userName });
+                      message.success(`${selectedRows.length} leads assigned to ${userName}`);
+                      setSelectedRows([]);
+                      queryClient.invalidateQueries({ queryKey: ['leads'] });
+                    } catch {
+                      message.error('Assignment failed');
+                    }
+                  }}
+                />
                 <Button size="small" type="primary" onClick={() => setBulkDrawerVisible(true)}>Bulk Update</Button>
                 <Button size="small" danger onClick={() => {
                   Modal.confirm({
