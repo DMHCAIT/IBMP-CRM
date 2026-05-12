@@ -158,12 +158,19 @@ class SupabaseDataLayer:
             _status = status_in if (status_in and not status) else status
             if _status:
                 if ',' in _status:
-                    statuses = [s.strip() for s in _status.split(',') if s.strip()]
+                    raw_statuses = [s.strip() for s in _status.split(',') if s.strip()]
+                    statuses = []
+                    seen = set()
+                    for s in raw_statuses:
+                        normalised = _normalise_status_str(s)
+                        if normalised not in seen:
+                            statuses.append(normalised)
+                            seen.add(normalised)
                     # Use eq for enum column (ilike not supported on enum type)
                     or_filter = ','.join([f"status.eq.{s}" for s in statuses])
                     query = query.or_(or_filter)
                 else:
-                    query = query.eq('status', _status.strip())
+                    query = query.eq('status', _normalise_status_str(_status.strip()))
             
             _country = country_in if (country_in and not country) else country
             if _country:
@@ -306,7 +313,20 @@ class SupabaseDataLayer:
             query = self.client.table('leads').select('*', count='exact')
             
             if status:
-                query = query.ilike('status', f'%{status.strip()}%')
+                if ',' in status:
+                    raw_statuses = [s.strip() for s in status.split(',') if s.strip()]
+                    statuses = []
+                    seen = set()
+                    for s in raw_statuses:
+                        normalised = _normalise_status_str(s)
+                        if normalised not in seen:
+                            statuses.append(normalised)
+                            seen.add(normalised)
+                    if statuses:
+                        or_filter = ','.join([f"status.eq.{s}" for s in statuses])
+                        query = query.or_(or_filter)
+                else:
+                    query = query.eq('status', _normalise_status_str(status.strip()))
             if segment:
                 query = query.ilike('ai_segment', f'%{segment.strip()}%')
             
