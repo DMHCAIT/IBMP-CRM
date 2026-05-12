@@ -7,6 +7,8 @@ from typing import List, Optional, Dict, Any
 from datetime import datetime
 import os
 import re
+import json
+import requests as _requests
 from supabase_client import supabase_manager
 from logger_config import logger
 
@@ -314,9 +316,42 @@ class SupabaseDataLayer:
         'notes',
     }
 
+    def _supabase_insert(self, table: str, payload: Dict[str, Any]) -> Dict[str, Any]:
+        """Direct HTTP POST to Supabase REST API, bypassing postgrest-py's broken
+        KeyError('code') exception handling.  Returns the first inserted row.
+        Raises RuntimeError with the real Supabase error message on failure."""
+        url  = supabase_manager.url
+        key  = supabase_manager.key
+        if not url or not key:
+            raise RuntimeError("SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY env vars not set")
+        endpoint = f"{url.rstrip('/')}/rest/v1/{table}"
+        headers = {
+            "apikey":        key,
+            "Authorization": f"Bearer {key}",
+            "Content-Type":  "application/json",
+            "Prefer":        "return=representation",
+        }
+        resp = _requests.post(endpoint, headers=headers, data=json.dumps(payload), timeout=30)
+        if resp.status_code in (200, 201):
+            rows = resp.json()
+            return rows[0] if rows else {}
+        # Surface the actual Supabase/PostgREST error message
+        try:
+            err = resp.json()
+            msg = err.get('message') or err.get('error') or err.get('details') or str(err)
+            code = err.get('code', resp.status_code)
+            hint = err.get('hint', '')
+            full = f"[{code}] {msg}"
+            if hint:
+                full += f" | hint: {hint}"
+        except Exception:
+            full = resp.text or f"HTTP {resp.status_code}"
+        raise RuntimeError(full)
+
     def create_lead(self, data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
-        """Create new lead — retries without optional columns on schema errors.
-        Raises on failure so callers get a real error message."""
+        """Create new lead via direct HTTP to bypass postgrest-py KeyError bug.
+        Retries without optional columns on schema errors.
+        Raises RuntimeError on failure so callers see the real DB error."""
         now = datetime.utcnow().isoformat() + 'Z'
         data['created_at'] = now
         data['updated_at'] = now
@@ -330,22 +365,18 @@ class SupabaseDataLayer:
         # --- Attempt 1: full payload ---
         first_error = None
         try:
-            response = self.client.table('leads').insert(cleaned_data).execute()
-            return response.data[0] if response.data else None
-        except Exception as e:
-            first_error = e
+            return self._supabase_insert('leads', cleaned_data)
+        except RuntimeError as e:
+            first_error = str(e)
             logger.warning(f"Lead insert attempt 1 failed ({e}) — retrying without optional columns")
 
-        # --- Attempt 2: minimal payload (strip optional columns) ---
+        # --- Attempt 2: strip optional columns ---
         minimal_data = {k: v for k, v in cleaned_data.items() if k not in self._OPTIONAL_COLUMNS}
         try:
-            response = self.client.table('leads').insert(minimal_data).execute()
-            return response.data[0] if response.data else None
-        except Exception as e2:
-            logger.error(f"Lead insert attempt 2 also failed: {e2}", exc_info=True)
-            # Raise a clear RuntimeError — webhooks_router will catch this and
-            # surface it in the per-row detail field instead of "create_lead returned None"
-            raise RuntimeError(f"DB insert failed: {e2}") from None
+            return self._supabase_insert('leads', minimal_data)
+        except RuntimeError as e2:
+            logger.error(f"Lead insert attempt 2 also failed: {e2}")
+            raise RuntimeError(f"DB insert failed (attempt1: {first_error}) (attempt2: {e2})") from None
     
     def delete_lead(self, lead_id: str) -> bool:
         """Delete lead and all its child records"""
