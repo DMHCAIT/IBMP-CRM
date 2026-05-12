@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Row, Col, Card, Table, Spin, Tag, Select, Button, Input, Space, Statistic, Tabs } from 'antd';
+import { Row, Col, Card, Table, Spin, Tag, Select, Button, Input, Space, Statistic, Tabs, notification } from 'antd';
 import {
   BarChart, Bar, PieChart, Pie, Cell,
   XAxis, YAxis, CartesianGrid, Tooltip, Legend,
@@ -8,7 +8,7 @@ import {
 } from 'recharts';
 import {
   RocketOutlined, DollarOutlined, FireOutlined,
-  RiseOutlined, PhoneOutlined, TeamOutlined, FileTextOutlined
+  RiseOutlined, PhoneOutlined, TeamOutlined, FileTextOutlined, SyncOutlined
 } from '@ant-design/icons';
 import api from '../api/api';
 
@@ -31,6 +31,7 @@ const campaignAPI = {
     return api.get(`/api/analytics/campaigns/leads?${params.toString()}`);
   },
   getCampaignDetail: (campaignName) => api.get(`/api/analytics/campaigns/${encodeURIComponent(campaignName)}`),
+  fetchFromSheet:   () => api.get('/api/sync/google-sheets/fetch-leads'),
 };
 
 const COLORS = ['#6366f1', '#10b981', '#f59e0b', '#ef4444', '#3b82f6', '#8b5cf6', '#ec4899', '#14b8a6'];
@@ -46,6 +47,27 @@ const CampaignAnalyticsPage = () => {
   const [selectedCampaign, setSelectedCampaign] = useState(null);
   const [activeTab, setActiveTab]               = useState('analytics');
   const [leadsSearch, setLeadsSearch]           = useState('');
+  const [sheetFetching, setSheetFetching]       = useState(false);
+  const [sheetFetchedLeads, setSheetFetchedLeads] = useState(null); // null = not fetched yet
+
+  const handleFetchFromSheet = async () => {
+    setSheetFetching(true);
+    try {
+      const res = await campaignAPI.fetchFromSheet();
+      const { leads = [], total = 0, error } = res.data;
+      if (error) {
+        notification.error({ message: 'Sheet Error', description: error });
+      } else {
+        setSheetFetchedLeads(leads);
+        setActiveTab('sheet');
+        notification.success({ message: `Fetched ${total} leads from Google Sheet` });
+      }
+    } catch (err) {
+      notification.error({ message: 'Failed to fetch from sheet', description: err?.response?.data?.detail || err.message });
+    } finally {
+      setSheetFetching(false);
+    }
+  };
 
   // Fetch overview data
   const { data: overview, isLoading: overviewLoading } = useQuery({
@@ -234,14 +256,25 @@ const CampaignAnalyticsPage = () => {
   return (
     <div style={{ padding: 24 }}>
       {/* Header */}
-      <div style={{ marginBottom: 24 }}>
-        <h1 style={{ fontSize: 28, fontWeight: 700, marginBottom: 8 }}>
-          <RocketOutlined style={{ marginRight: 12, color: '#6366f1' }} />
-          Campaign Performance Analytics
-        </h1>
-        <p style={{ color: '#6b7280', fontSize: 15 }}>
-          Track and analyze all your marketing campaigns · Google Sheet synced leads
-        </p>
+      <div style={{ marginBottom: 24, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 12 }}>
+        <div>
+          <h1 style={{ fontSize: 28, fontWeight: 700, marginBottom: 8 }}>
+            <RocketOutlined style={{ marginRight: 12, color: '#6366f1' }} />
+            Campaign Performance Analytics
+          </h1>
+          <p style={{ color: '#6b7280', fontSize: 15 }}>
+            Track and analyze all your marketing campaigns · Google Sheet synced leads
+          </p>
+        </div>
+        <Button
+          type="primary"
+          icon={<SyncOutlined spin={sheetFetching} />}
+          loading={sheetFetching}
+          onClick={handleFetchFromSheet}
+          style={{ background: '#10b981', borderColor: '#10b981', height: 40, fontWeight: 600 }}
+        >
+          Fetch from Sheet
+        </Button>
       </div>
 
       {/* KPI cards — always visible */}
@@ -334,10 +367,56 @@ const CampaignAnalyticsPage = () => {
             ),
           },
           {
+            key: 'sheet',
+            label: (
+              <span>
+                <SyncOutlined /> From Sheet
+                {sheetFetchedLeads !== null && <Tag color="green" style={{ marginLeft: 8 }}>{sheetFetchedLeads.length}</Tag>}
+              </span>
+            ),
+            children: (
+              <Card
+                title={
+                  <Space>
+                    <span>Live Google Sheet Leads</span>
+                    {sheetFetchedLeads !== null && <Tag color="green">{sheetFetchedLeads.length} rows</Tag>}
+                  </Space>
+                }
+                extra={
+                  <Button icon={<SyncOutlined spin={sheetFetching} />} loading={sheetFetching} onClick={handleFetchFromSheet}>
+                    Refresh
+                  </Button>
+                }
+                variant="borderless"
+              >
+                {sheetFetchedLeads === null ? (
+                  <div style={{ textAlign: 'center', padding: 60, color: '#9ca3af' }}>
+                    <SyncOutlined style={{ fontSize: 40, marginBottom: 16, color: '#10b981' }} />
+                    <div style={{ fontSize: 16, fontWeight: 600 }}>Click "Fetch from Sheet" to load live data</div>
+                    <div style={{ marginTop: 8, fontSize: 13 }}>Reads directly from your connected Google Sheet</div>
+                    <Button type="primary" icon={<SyncOutlined />} style={{ marginTop: 20, background: '#10b981', borderColor: '#10b981' }}
+                      loading={sheetFetching} onClick={handleFetchFromSheet}>
+                      Fetch from Sheet
+                    </Button>
+                  </div>
+                ) : (
+                  <Table
+                    columns={sheetLeadColumns}
+                    dataSource={sheetFetchedLeads}
+                    rowKey={(r, i) => r.meta_lead_id || r.phone || i}
+                    pagination={{ pageSize: 50, showTotal: t => `${t} leads` }}
+                    scroll={{ x: 1600 }}
+                    size="small"
+                  />
+                )}
+              </Card>
+            ),
+          },
+          {
             key: 'leads',
             label: (
               <span>
-                <FileTextOutlined /> Sheet Leads
+                <FileTextOutlined /> Sheet Leads (DB)
                 <Tag color="blue" style={{ marginLeft: 8 }}>{sheetLeads.length}</Tag>
               </span>
             ),

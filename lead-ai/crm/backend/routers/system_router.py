@@ -258,3 +258,40 @@ async def test_google_sheets_connection():
     except Exception as exc:
         logger.error(f"Error testing connection: {exc}")
         raise HTTPException(status_code=500, detail=str(exc))
+
+
+@router.get("/api/sync/google-sheets/fetch-leads")
+async def fetch_leads_from_sheet():
+    """
+    Fetch ALL leads directly from Google Sheet (live read, not from DB).
+    Powers the 'Fetch from Sheet' button on the Campaign Analytics page.
+    """
+    try:
+        from google_sheets_service import google_sheets_service
+
+        if not google_sheets_service.is_available():
+            return {"success": False, "error": "Google Sheets not configured on server", "leads": []}
+
+        raw_leads = google_sheets_service.get_all_leads()
+
+        # Extra field normalisation on top of what google_sheets_service already does
+        FIELD_MAP = {
+            "platform":                    "campaign_medium",
+            "phone_number":                "phone",
+            "your_highest_qualification:": "qualification",
+            "lead_status":                 "status",
+            "lead_owner":                  "assigned_to",
+        }
+
+        normalised = []
+        for lead in raw_leads:
+            row: dict = {}
+            for k, v in lead.items():
+                mapped = FIELD_MAP.get(k, k)
+                row[mapped] = v
+            normalised.append(row)
+
+        return {"success": True, "total": len(normalised), "leads": normalised}
+    except Exception as exc:
+        logger.error(f"fetch-leads error: {exc}")
+        raise HTTPException(status_code=500, detail=str(exc))
