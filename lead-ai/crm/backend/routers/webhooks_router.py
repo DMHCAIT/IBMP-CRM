@@ -170,6 +170,7 @@ async def sync_all_from_sheet(
         raise HTTPException(status_code=400, detail="'leads' must be a list")
 
     from supabase_data_layer import supabase_data
+    import uuid as _uuid
 
     created  = 0
     updated  = 0
@@ -187,8 +188,15 @@ async def sync_all_from_sheet(
                 updated += 1
                 results.append({"lead_id": lead_id, "action": "updated"})
             else:
+                # Generate lead_id in the same format as leads_router
+                _ts   = datetime.now(timezone.utc).strftime("%y%m%d%H%M%S")
+                _rand = _uuid.uuid4().hex[:8].upper()
+                lead["lead_id"] = f"LEAD{_ts}{_rand}"
+                lead.setdefault("status", "Fresh")
+                lead.setdefault("source", "Google Sheet")
+
                 new_lead = supabase_data.create_lead(lead)
-                new_id   = new_lead.get("lead_id", "") if new_lead else ""
+                new_id   = new_lead.get("lead_id", lead["lead_id"]) if new_lead else lead["lead_id"]
                 created += 1
                 results.append({"lead_id": new_id, "action": "created"})
         except Exception as exc:
