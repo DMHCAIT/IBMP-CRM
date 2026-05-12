@@ -63,7 +63,12 @@ async def login(request: Request, body: LoginRequest):
     Validates against Supabase users table with SQLite fallback for local dev.
     Returns a signed JWT on success.
     """
+    logger.info(f"🔐 Login attempt: {body.username}")
     user = supabase_data.get_user_by_email(body.username)
+    if user:
+        logger.info(f"✅ User found in Supabase: {body.username} (role={user.get('role')}, active={user.get('is_active')})")
+    else:
+        logger.warning(f"❌ User NOT found in Supabase: {body.username}")
 
     # ── Local SQLite fallback (dev / test only) ───────────────────────────
     if not user:
@@ -117,6 +122,7 @@ async def login(request: Request, body: LoginRequest):
         ok = (raw_hash == body.password)
 
     if not ok:
+        logger.warning(f"❌ Password mismatch for: {body.username}")
         raise HTTPException(status_code=401, detail="Invalid username or password")
 
     _role       = user.get("role", "")
@@ -226,3 +232,67 @@ async def get_me(request: Request):
         raise
     except JWTError:
         raise HTTPException(status_code=401, detail="Could not validate credentials")
+
+
+# ── One-time admin setup ───────────────────────────────────────────────────────
+
+class SetupRequest(BaseModel):
+    setup_secret: str   # must match SETUP_SECRET env var
+    email: str
+    password: str
+    full_name: str = "Super Admin"
+    role: str = "Super Admin"
+
+
+@router.post("/setup")
+async def setup_first_admin(body: SetupRequest):
+    """
+    Creates the first admin user when the users table is empty.
+    Protected by SETUP_SECRET env var — set it in Render dashboard.
+    This endpoint becomes a no-op (403) once any user exists.
+    """
+    # Verify setup secret
+    configured_secret = os.getenv("SETUP_SECRET", "")
+    if not configured_secret:
+        raise HTTPException(status_code=403, detail="SETUP_SECRET env var not configured on server")
+    if body.setup_secret != configured_secret:
+        raise HTTPException(status_code=403, detail="Invalid setup secret")
+
+    # Only allow when users table is empty
+    existing = supabase_data.get_all_users()
+    if existing:
+        raise HTTPException(
+            status_code=403,
+            detail=f"Setup not allowed — {len(existing)} user(s) already exist. Use the Users page to add more."
+        )
+
+    # Create the admin user with bcrypt password
+    from auth import get_password_hash
+    from datetime import datetime as _dt
+    now = _dt.utcnow().isoformat() + "Z"
+    user_data = {
+        "full_name":  body.full_name,
+        "email":      body.email.lower().strip(),
+        "password":   get_password_hash(body.password),
+        "role":       body.role,
+        "is_active":  True,
+        "created_at": now,
+        "updated_at": now,
+    }
+    try:
+        resp = supabase_data.client.table("users").insert(user_data).execute()
+        created = resp.data[0] if resp.data else None
+        if not created:
+            raise HTTPException(status_code=500, detail="Failed to create user in database")
+        logger.info(f"✅ Setup: first admin user created — {body.email}")
+        return {
+            "success": True,
+            "message": f"Admin user '{body.email}' created successfully. You can now log in.",
+            "email":   body.email,
+            "role":    body.role,
+        }
+    except HTTPException:
+        raise
+    except Exception as exc:
+        logger.error(f"Setup error: {exc}")
+        raise HTTPException(status_code=500, detail=str(exc))
