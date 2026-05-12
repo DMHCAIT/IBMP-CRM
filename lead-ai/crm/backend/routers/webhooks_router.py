@@ -28,6 +28,20 @@ from sheets_sync_service import sheets_sync, verify_webhook_signature
 router = APIRouter(prefix="/api/webhooks", tags=["Webhooks"])
 
 
+def _safe_exc_message(exc: Exception) -> str:
+    """Return a stable, readable exception message (never raises)."""
+    try:
+        txt = str(exc)
+        if txt:
+            return txt
+    except Exception:
+        pass
+    try:
+        return repr(exc)
+    except Exception:
+        return exc.__class__.__name__
+
+
 # ── Google Sheets → CRM ───────────────────────────────────────────────────────
 
 @router.get("/google-sheets")
@@ -172,6 +186,8 @@ async def sync_all_from_sheet(
     from supabase_data_layer import supabase_data
     import uuid as _uuid
 
+    default_tenant_id = os.getenv("DEFAULT_TENANT_ID", "00000000-0000-0000-0000-000000000001")
+
     created  = 0
     updated  = 0
     results  = []
@@ -181,6 +197,10 @@ async def sync_all_from_sheet(
         lead.pop("_sheet_name", None)
         lead.pop("_row_number", None)
         lead = {k: (v if v != "" else None) for k, v in lead.items()}
+
+        # Ensure tenant_id is present for multi-tenant schemas.
+        # Safe no-op if column doesn't exist or DB defaults already handle it.
+        lead.setdefault("tenant_id", default_tenant_id)
 
         try:
             if lead_id:
@@ -203,8 +223,9 @@ async def sync_all_from_sheet(
                 else:
                     results.append({"lead_id": lead["lead_id"], "action": "error", "detail": "create_lead returned None"})
         except Exception as exc:
-            logger.warning(f"sync-all-from-sheet lead error: {exc}")
-            results.append({"lead_id": lead_id or "", "action": "error", "detail": str(exc)})
+            msg = _safe_exc_message(exc)
+            logger.warning(f"sync-all-from-sheet lead error: {msg}")
+            results.append({"lead_id": lead_id or "", "action": "error", "detail": msg})
 
     logger.info(f"sync-all-from-sheet: created={created} updated={updated} total={len(leads)}")
     return {"created": created, "updated": updated, "total": len(leads), "results": results}
