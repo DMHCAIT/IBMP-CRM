@@ -13,14 +13,8 @@
 
 import React from 'react';
 
-// ── Sentry integration (optional — no-op if not installed) ────────────────
-let Sentry = null;
-try {
-  // eslint-disable-next-line
-  Sentry = require('@sentry/react');
-} catch (_) {
-  // Sentry not installed — silently skip
-}
+// Sentry is not installed — all Sentry calls are safely no-ops
+const Sentry = null;
 
 // ── Environment helper ────────────────────────────────────────────────────
 const isDev = process.env.NODE_ENV === 'development';
