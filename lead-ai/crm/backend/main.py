@@ -352,6 +352,10 @@ _PUBLIC_PATHS = {
     "/docs",
     "/redoc",
     "/openapi.json",
+    # Webhook endpoints — authenticated by shared secret, not JWT
+    "/api/webhooks/google-sheets",
+    "/api/webhooks/sync-all-from-sheet",
+    "/api/webhooks/test",
 }
 
 async def _verify_token(request: Request) -> None:
