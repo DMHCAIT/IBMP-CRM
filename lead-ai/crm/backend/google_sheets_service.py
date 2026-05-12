@@ -56,26 +56,38 @@ class GoogleSheetsService:
             logger.warning("⚠️ Google Sheets libraries not installed. Run: pip install google-auth google-auth-oauthlib google-api-python-client")
             return
         
-        # Check for credentials file
-        creds_path = os.getenv('GOOGLE_SHEETS_CREDENTIALS_PATH', 'google-credentials.json')
-        
-        if not os.path.exists(creds_path):
-            logger.warning(f"⚠️ Google Sheets credentials not found at: {creds_path}")
-            logger.info("📝 To enable Google Sheets sync:")
-            logger.info("1. Go to: https://console.cloud.google.com/")
-            logger.info("2. Create a service account")
-            logger.info("3. Download credentials JSON")
-            logger.info("4. Save as 'google-credentials.json' in backend folder")
-            logger.info("5. Share your Google Sheet with the service account email")
-            return
-        
         try:
-            # Load service account credentials
-            self.credentials = service_account.Credentials.from_service_account_file(
-                creds_path,
-                scopes=['https://www.googleapis.com/auth/spreadsheets']
-            )
-            
+            # ── Option 1: credentials JSON in env var (Render / cloud deployments) ──
+            creds_json_str = os.getenv('GOOGLE_SHEETS_CREDENTIALS_JSON', '')
+            if creds_json_str:
+                import json as _json
+                creds_info = _json.loads(creds_json_str)
+                self.credentials = service_account.Credentials.from_service_account_info(
+                    creds_info,
+                    scopes=['https://www.googleapis.com/auth/spreadsheets']
+                )
+                logger.info("✅ Google Sheets credentials loaded from env var")
+            else:
+                # ── Option 2: credentials file on disk (local dev) ─────────────────
+                creds_path = os.getenv('GOOGLE_SHEETS_CREDENTIALS_PATH', 'google-credentials.json')
+                if not os.path.exists(creds_path):
+                    logger.warning(
+                        f"⚠️ Google Sheets credentials not found. "
+                        f"Set GOOGLE_SHEETS_CREDENTIALS_JSON env var (cloud) "
+                        f"or place google-credentials.json at: {creds_path}"
+                    )
+                    return
+                self.credentials = service_account.Credentials.from_service_account_file(
+                    creds_path,
+                    scopes=['https://www.googleapis.com/auth/spreadsheets']
+                )
+                logger.info("✅ Google Sheets credentials loaded from file")
+
+        except Exception as e:
+            logger.error(f"❌ Failed to load Google Sheets credentials: {e}")
+            return
+
+        try:
             # Build the service
             self.service = build('sheets', 'v4', credentials=self.credentials)
             
