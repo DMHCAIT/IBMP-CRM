@@ -1,14 +1,14 @@
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Row, Col, Card, Table, Spin, Tag, Select, Button, Input, Space, Statistic } from 'antd';
+import { Row, Col, Card, Table, Spin, Tag, Select, Button, Input, Space, Statistic, Tabs } from 'antd';
 import {
-  BarChart, Bar, PieChart, Pie, Cell, LineChart, Line,
+  BarChart, Bar, PieChart, Pie, Cell,
   XAxis, YAxis, CartesianGrid, Tooltip, Legend,
   ResponsiveContainer
 } from 'recharts';
-import { 
-  RocketOutlined, DollarOutlined, FireOutlined, 
-  RiseOutlined, PhoneOutlined, TeamOutlined 
+import {
+  RocketOutlined, DollarOutlined, FireOutlined,
+  RiseOutlined, PhoneOutlined, TeamOutlined, FileTextOutlined
 } from '@ant-design/icons';
 import api from '../api/api';
 
@@ -17,23 +17,35 @@ const { Search } = Input;
 
 // API calls for campaign analytics — uses the central api instance (correct base URL + auth header)
 const campaignAPI = {
-  getOverview: () => api.get('/api/analytics/campaigns/overview'),
+  getOverview:     () => api.get('/api/analytics/campaigns/overview'),
   getCampaignList: (medium, group) => {
     const params = new URLSearchParams();
     if (medium) params.append('medium', medium);
-    if (group) params.append('group', group);
+    if (group)  params.append('group', group);
     return api.get(`/api/analytics/campaigns/list?${params.toString()}`);
   },
+  getCampaignLeads: (campaignName, medium) => {
+    const params = new URLSearchParams();
+    if (campaignName) params.append('campaign_name', campaignName);
+    if (medium)       params.append('medium', medium);
+    return api.get(`/api/analytics/campaigns/leads?${params.toString()}`);
+  },
   getCampaignDetail: (campaignName) => api.get(`/api/analytics/campaigns/${encodeURIComponent(campaignName)}`),
-  compareCampaigns: (names) => api.get(`/api/analytics/campaigns/compare?campaign_names=${names}`),
 };
 
 const COLORS = ['#6366f1', '#10b981', '#f59e0b', '#ef4444', '#3b82f6', '#8b5cf6', '#ec4899', '#14b8a6'];
 
+const STATUS_COLOR = {
+  Fresh: 'blue', Contacted: 'cyan', Interested: 'geekblue',
+  'Follow Up': 'orange', Converted: 'green', Enrolled: 'success',
+  Lost: 'red', Junk: 'default', 'Not Interested': 'volcano',
+};
+
 const CampaignAnalyticsPage = () => {
-  const [selectedMedium, setSelectedMedium] = useState(null);
-  const [selectedGroup, setSelectedGroup] = useState(null);
+  const [selectedMedium, setSelectedMedium]     = useState(null);
   const [selectedCampaign, setSelectedCampaign] = useState(null);
+  const [activeTab, setActiveTab]               = useState('analytics');
+  const [leadsSearch, setLeadsSearch]           = useState('');
 
   // Fetch overview data
   const { data: overview, isLoading: overviewLoading } = useQuery({
@@ -43,16 +55,23 @@ const CampaignAnalyticsPage = () => {
 
   // Fetch campaign list
   const { data: campaigns, isLoading: campaignsLoading } = useQuery({
-    queryKey: ['campaignList', selectedMedium, selectedGroup],
-    queryFn: () => campaignAPI.getCampaignList(selectedMedium, selectedGroup).then(res => res.data),
+    queryKey: ['campaignList', selectedMedium],
+    queryFn: () => campaignAPI.getCampaignList(selectedMedium, null).then(res => res.data),
   });
 
-  // Fetch campaign detail when selected
-  const { data: campaignDetail, isLoading: detailLoading } = useQuery({
-    queryKey: ['campaignDetail', selectedCampaign],
-    queryFn: () => selectedCampaign ? campaignAPI.getCampaignDetail(selectedCampaign).then(res => res.data) : null,
-    enabled: !!selectedCampaign,
+  // Fetch all sheet leads (for Sheet Leads tab)
+  const { data: sheetLeads = [], isLoading: sheetLeadsLoading } = useQuery({
+    queryKey: ['campaignLeads', selectedCampaign, selectedMedium],
+    queryFn: () => campaignAPI.getCampaignLeads(selectedCampaign, selectedMedium).then(res => res.data),
   });
+
+  // Filtered sheet leads for search
+  const filteredLeads = leadsSearch
+    ? sheetLeads.filter(l =>
+        [l.full_name, l.phone, l.email, l.campaign_name, l.ad_name, l.adset_name]
+          .some(v => v && String(v).toLowerCase().includes(leadsSearch.toLowerCase()))
+      )
+    : sheetLeads;
 
   if (overviewLoading) {
     return (
@@ -166,6 +185,52 @@ const CampaignAnalyticsPage = () => {
     },
   ];
 
+  // Sheet leads table columns
+  const sheetLeadColumns = [
+    { title: '#', key: 'idx', width: 50, render: (_, __, i) => i + 1 },
+    {
+      title: 'Name', dataIndex: 'full_name', key: 'full_name', width: 160,
+      render: (v, r) => (
+        <a href={`/leads/${r.lead_id}`} target="_blank" rel="noreferrer" style={{ fontWeight: 600 }}>{v}</a>
+      ),
+    },
+    { title: 'Phone', dataIndex: 'phone', key: 'phone', width: 140 },
+    {
+      title: 'Status', dataIndex: 'status', key: 'status', width: 110,
+      render: v => <Tag color={STATUS_COLOR[v] || 'default'}>{v}</Tag>,
+    },
+    {
+      title: 'Campaign Name', dataIndex: 'campaign_name', key: 'campaign_name', width: 200,
+      render: v => v ? <Tag color="purple">{v}</Tag> : <span style={{ color: '#bbb' }}>—</span>,
+    },
+    {
+      title: 'Platform', dataIndex: 'campaign_medium', key: 'campaign_medium', width: 110,
+      render: v => v ? <Tag color="blue">{v}</Tag> : <span style={{ color: '#bbb' }}>—</span>,
+    },
+    {
+      title: 'Ad Name', dataIndex: 'ad_name', key: 'ad_name', width: 180,
+      render: v => v || <span style={{ color: '#bbb' }}>—</span>,
+    },
+    {
+      title: 'Adset', dataIndex: 'adset_name', key: 'adset_name', width: 160,
+      render: v => v || <span style={{ color: '#bbb' }}>—</span>,
+    },
+    {
+      title: 'Form', dataIndex: 'form_name', key: 'form_name', width: 160,
+      render: v => v || <span style={{ color: '#bbb' }}>—</span>,
+    },
+    {
+      title: 'Quality', dataIndex: 'lead_quality', key: 'lead_quality', width: 90,
+      render: v => v ? <Tag color={v === 'High' ? 'green' : v === 'Low' ? 'red' : 'orange'}>{v}</Tag> : <span style={{ color: '#bbb' }}>—</span>,
+    },
+    { title: 'Country', dataIndex: 'country', key: 'country', width: 100 },
+    { title: 'Assigned To', dataIndex: 'assigned_to', key: 'assigned_to', width: 130 },
+    {
+      title: 'Created', dataIndex: 'created_at', key: 'created_at', width: 110,
+      render: v => v ? new Date(v).toLocaleDateString('en-IN') : '—',
+    },
+  ];
+
   return (
     <div style={{ padding: 24 }}>
       {/* Header */}
@@ -175,264 +240,137 @@ const CampaignAnalyticsPage = () => {
           Campaign Performance Analytics
         </h1>
         <p style={{ color: '#6b7280', fontSize: 15 }}>
-          Track and analyze all your marketing campaigns in one place
+          Track and analyze all your marketing campaigns · Google Sheet synced leads
         </p>
       </div>
 
-      {/* Overview Cards */}
+      {/* KPI cards — always visible */}
       <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
-        <Col xs={24} sm={12} lg={6}>
-          <Card>
-            <Statistic
-              title="Total Campaigns"
-              value={overview?.total_campaigns || 0}
-              prefix={<RocketOutlined />}
-              valueStyle={{ color: '#6366f1' }}
-            />
-          </Card>
-        </Col>
-        <Col xs={24} sm={12} lg={6}>
-          <Card>
-            <Statistic
-              title="Total Leads"
-              value={overview?.total_leads || 0}
-              prefix={<TeamOutlined />}
-              valueStyle={{ color: '#10b981' }}
-            />
-          </Card>
-        </Col>
-        <Col xs={24} sm={12} lg={6}>
-          <Card>
-            <Statistic
-              title="Total Revenue"
-              value={overview?.total_revenue || 0}
-              prefix="₹"
-              precision={0}
-              valueStyle={{ color: '#f59e0b' }}
-            />
-          </Card>
-        </Col>
-        <Col xs={24} sm={12} lg={6}>
-          <Card>
-            <Statistic
-              title="Conversion Rate"
-              value={overview?.conversion_rate || 0}
-              suffix="%"
-              prefix={<RiseOutlined />}
-              valueStyle={{ color: '#ef4444' }}
-            />
-          </Card>
-        </Col>
+        {[
+          { title: 'Total Campaigns', value: overview?.total_campaigns || 0, icon: <RocketOutlined />, color: '#6366f1' },
+          { title: 'Sheet Leads',     value: sheetLeads.length,             icon: <FileTextOutlined />, color: '#10b981' },
+          { title: 'Total Revenue',   value: `₹${Number(overview?.total_revenue||0).toLocaleString('en-IN')}`, icon: null, color: '#f59e0b' },
+          { title: 'Conversion Rate', value: `${overview?.conversion_rate || 0}%`, icon: <RiseOutlined />, color: '#ef4444' },
+        ].map(k => (
+          <Col xs={24} sm={12} lg={6} key={k.title}>
+            <Card>
+              <Statistic title={k.title} value={k.value} prefix={k.icon} valueStyle={{ color: k.color }} />
+            </Card>
+          </Col>
+        ))}
       </Row>
 
-      {/* Performance by Medium Chart */}
-      <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
-        <Col xs={24} lg={12}>
-          <Card title="Performance by Medium" variant="borderless">
-            {overview?.by_medium && overview.by_medium.length > 0 ? (
-              <ResponsiveContainer width="100%" height={300}>
-                <BarChart data={overview.by_medium}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="medium" />
-                  <YAxis />
-                  <Tooltip />
-                  <Legend />
-                  <Bar dataKey="leads" fill="#6366f1" name="Leads" />
-                  <Bar dataKey="conversions" fill="#10b981" name="Conversions" />
-                </BarChart>
-              </ResponsiveContainer>
-            ) : (
-              <div style={{ textAlign: 'center', padding: 40, color: '#9ca3af' }}>
-                No campaign data available
-              </div>
-            )}
-          </Card>
-        </Col>
-        <Col xs={24} lg={12}>
-          <Card title="Conversion Rates by Medium" variant="borderless">
-            {overview?.by_medium && overview.by_medium.length > 0 ? (
-              <ResponsiveContainer width="100%" height={300}>
-                <PieChart>
-                  <Pie
-                    data={overview.by_medium}
-                    dataKey="conversion_rate"
-                    nameKey="medium"
-                    cx="50%"
-                    cy="50%"
-                    outerRadius={100}
-                    label={(entry) => `${entry.medium}: ${entry.conversion_rate}%`}
-                  >
-                    {overview.by_medium.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                    ))}
-                  </Pie>
-                  <Tooltip />
-                </PieChart>
-              </ResponsiveContainer>
-            ) : (
-              <div style={{ textAlign: 'center', padding: 40, color: '#9ca3af' }}>
-                No campaign data available
-              </div>
-            )}
-          </Card>
-        </Col>
-      </Row>
-
-      {/* Filters */}
-      <Card style={{ marginBottom: 24 }}>
-        <Space size="middle">
-          <span style={{ fontWeight: 600 }}>Filters:</span>
-          <Select
-            placeholder="Select Medium"
-            style={{ width: 200 }}
-            allowClear
-            onChange={setSelectedMedium}
-            value={selectedMedium}
-          >
-            {overview?.by_medium?.map(item => (
-              <Option key={item.medium} value={item.medium}>{item.medium}</Option>
-            ))}
+      {/* Shared filter bar */}
+      <Card style={{ marginBottom: 16 }}>
+        <Space wrap>
+          <span style={{ fontWeight: 600 }}>Filter:</span>
+          <Select placeholder="Platform / Medium" style={{ width: 180 }} allowClear
+            value={selectedMedium} onChange={v => { setSelectedMedium(v); setSelectedCampaign(null); }}>
+            {overview?.by_medium?.map(m => <Option key={m.medium} value={m.medium}>{m.medium}</Option>)}
           </Select>
-          <Select
-            placeholder="Select Group"
-            style={{ width: 200 }}
-            allowClear
-            onChange={setSelectedGroup}
-            value={selectedGroup}
-          >
-            {/* Add groups dynamically if available */}
+          <Select placeholder="Campaign" style={{ width: 220 }} allowClear showSearch
+            value={selectedCampaign} onChange={setSelectedCampaign}>
+            {[...new Set((campaigns||[]).map(c => c.campaign_name))].map(n => <Option key={n} value={n}>{n}</Option>)}
           </Select>
-          <Button type="primary" onClick={() => { setSelectedMedium(null); setSelectedGroup(null); }}>
-            Reset Filters
+          <Button onClick={() => { setSelectedMedium(null); setSelectedCampaign(null); setLeadsSearch(''); }}>
+            Reset
           </Button>
         </Space>
       </Card>
 
-      {/* Campaign List Table */}
-      <Card title="All Campaigns" variant="borderless">
-        <Table
-          columns={columns}
-          dataSource={campaigns || []}
-          rowKey="campaign_name"
-          loading={campaignsLoading}
-          pagination={{ pageSize: 20 }}
-          scroll={{ x: 1400 }}
-        />
-      </Card>
+      {/* Tabs */}
+      <Tabs
+        activeKey={activeTab}
+        onChange={setActiveTab}
+        items={[
+          {
+            key: 'analytics',
+            label: <span><RocketOutlined /> Campaign Analytics</span>,
+            children: (
+              <>
+                {/* Charts */}
+                <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
+                  <Col xs={24} lg={14}>
+                    <Card title="Performance by Platform" variant="borderless">
+                      {overview?.by_medium?.length > 0 ? (
+                        <ResponsiveContainer width="100%" height={260}>
+                          <BarChart data={overview.by_medium}>
+                            <CartesianGrid strokeDasharray="3 3" />
+                            <XAxis dataKey="medium" />
+                            <YAxis />
+                            <Tooltip />
+                            <Legend />
+                            <Bar dataKey="leads" fill="#6366f1" name="Leads" />
+                            <Bar dataKey="conversions" fill="#10b981" name="Conversions" />
+                          </BarChart>
+                        </ResponsiveContainer>
+                      ) : <div style={{ textAlign: 'center', padding: 40, color: '#9ca3af' }}>No data</div>}
+                    </Card>
+                  </Col>
+                  <Col xs={24} lg={10}>
+                    <Card title="Conv. Rate by Platform" variant="borderless">
+                      {overview?.by_medium?.length > 0 ? (
+                        <ResponsiveContainer width="100%" height={260}>
+                          <PieChart>
+                            <Pie data={overview.by_medium} dataKey="conversion_rate" nameKey="medium"
+                              cx="50%" cy="50%" outerRadius={90}
+                              label={e => `${e.medium}: ${e.conversion_rate}%`}>
+                              {overview.by_medium.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
+                            </Pie>
+                            <Tooltip />
+                          </PieChart>
+                        </ResponsiveContainer>
+                      ) : <div style={{ textAlign: 'center', padding: 40, color: '#9ca3af' }}>No data</div>}
+                    </Card>
+                  </Col>
+                </Row>
 
-      {/* Campaign Detail Modal/Section */}
-      {selectedCampaign && campaignDetail && (
-        <Card 
-          title={`Campaign Details: ${selectedCampaign}`} 
-          variant="borderless"
-          style={{ marginTop: 24 }}
-          extra={<Button onClick={() => setSelectedCampaign(null)}>Close</Button>}
-        >
-          <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
-            <Col xs={24} sm={8}>
-              <Card>
-                <Statistic
-                  title="Total Leads"
-                  value={campaignDetail.summary?.total_leads || 0}
-                  prefix={<TeamOutlined />}
-                />
-              </Card>
-            </Col>
-            <Col xs={24} sm={8}>
-              <Card>
-                <Statistic
-                  title="Conversions"
-                  value={campaignDetail.summary?.converted || 0}
-                  suffix={`(${campaignDetail.summary?.conversion_rate}%)`}
-                  valueStyle={{ color: '#10b981' }}
-                />
-              </Card>
-            </Col>
-            <Col xs={24} sm={8}>
-              <Card>
-                <Statistic
-                  title="Total Revenue"
-                  value={campaignDetail.summary?.total_revenue || 0}
-                  prefix="₹"
-                  precision={0}
-                  valueStyle={{ color: '#f59e0b' }}
-                />
-              </Card>
-            </Col>
-          </Row>
-
-          <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
-            <Col xs={24} lg={8}>
-              <Card title="Lead Quality Distribution" size="small">
-                <div style={{ marginBottom: 8 }}>
-                  <Tag color="red">Hot: {campaignDetail.summary?.hot_leads || 0}</Tag>
-                </div>
-                <div style={{ marginBottom: 8 }}>
-                  <Tag color="orange">Warm: {campaignDetail.summary?.warm_leads || 0}</Tag>
-                </div>
-                <div>
-                  <Tag color="blue">Cold: {campaignDetail.summary?.cold_leads || 0}</Tag>
-                </div>
-              </Card>
-            </Col>
-            <Col xs={24} lg={8}>
-              <Card title="Call Completion Rates" size="small">
-                <div style={{ marginBottom: 8 }}>
-                  1st Call: <strong>{campaignDetail.call_stats?.first_call_rate}%</strong>
-                </div>
-                <div style={{ marginBottom: 8 }}>
-                  2nd Call: <strong>{campaignDetail.call_stats?.second_call_rate}%</strong>
-                </div>
-                <div>
-                  3rd Call: <strong>{campaignDetail.call_stats?.third_call_rate}%</strong>
-                </div>
-              </Card>
-            </Col>
-            <Col xs={24} lg={8}>
-              <Card title="Avg Revenue" size="small">
-                <Statistic
-                  value={campaignDetail.summary?.avg_revenue_per_lead || 0}
-                  prefix="₹"
-                  precision={2}
-                  suffix="per lead"
-                />
-              </Card>
-            </Col>
-          </Row>
-
-          {/* Status Breakdown */}
-          <Row gutter={[16, 16]}>
-            <Col xs={24} lg={12}>
-              <Card title="By Status" size="small">
+                {/* Campaign summary table */}
+                <Card title="All Campaigns" variant="borderless">
+                  <Table columns={columns} dataSource={campaigns || []} rowKey="campaign_name"
+                    loading={campaignsLoading} pagination={{ pageSize: 20 }} scroll={{ x: 1400 }} />
+                </Card>
+              </>
+            ),
+          },
+          {
+            key: 'leads',
+            label: (
+              <span>
+                <FileTextOutlined /> Sheet Leads
+                <Tag color="blue" style={{ marginLeft: 8 }}>{sheetLeads.length}</Tag>
+              </span>
+            ),
+            children: (
+              <Card
+                title={
+                  <Space>
+                    <span>All Google Sheet Leads</span>
+                    {selectedCampaign && <Tag color="purple">{selectedCampaign}</Tag>}
+                    {selectedMedium  && <Tag color="blue">{selectedMedium}</Tag>}
+                  </Space>
+                }
+                extra={
+                  <Input.Search placeholder="Search name / phone / campaign…" allowClear
+                    style={{ width: 280 }} onSearch={setLeadsSearch}
+                    onChange={e => !e.target.value && setLeadsSearch('')} />
+                }
+                variant="borderless"
+              >
                 <Table
-                  dataSource={campaignDetail.by_status || []}
-                  columns={[
-                    { title: 'Status', dataIndex: 'status', key: 'status' },
-                    { title: 'Count', dataIndex: 'count', key: 'count' },
-                    { title: 'Percentage', dataIndex: 'percentage', key: 'percentage', render: (val) => `${val}%` },
-                  ]}
-                  pagination={false}
+                  columns={sheetLeadColumns}
+                  dataSource={filteredLeads}
+                  rowKey="lead_id"
+                  loading={sheetLeadsLoading}
+                  pagination={{ pageSize: 50, showTotal: t => `${t} leads` }}
+                  scroll={{ x: 1600 }}
                   size="small"
                 />
               </Card>
-            </Col>
-            <Col xs={24} lg={12}>
-              <Card title="By Course" size="small">
-                <Table
-                  dataSource={campaignDetail.by_course || []}
-                  columns={[
-                    { title: 'Course', dataIndex: 'course', key: 'course' },
-                    { title: 'Count', dataIndex: 'count', key: 'count' },
-                    { title: 'Percentage', dataIndex: 'percentage', key: 'percentage', render: (val) => `${val}%` },
-                  ]}
-                  pagination={false}
-                  size="small"
-                />
-              </Card>
-            </Col>
-          </Row>
-        </Card>
-      )}
+            ),
+          },
+        ]}
+      />
     </div>
   );
 };
