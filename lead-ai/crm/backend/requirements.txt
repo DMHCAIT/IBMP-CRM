@@ -35,7 +35,7 @@ openai==1.57.0
 
 # ── Communication Integrations ────────────────────────────
 twilio==9.3.7
-resend==2.5.0
+resend==2.5.1
 sendgrid==6.11.0
 jinja2==3.1.4
 
