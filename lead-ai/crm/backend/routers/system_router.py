@@ -239,6 +239,18 @@ async def sync_google_sheets_now():
         raise HTTPException(status_code=500, detail=str(exc))
 
 
+@router.post("/api/sync/google-sheets/sync-all")
+async def sync_all_google_sheets_leads():
+    """Sync ALL leads from Google Sheet as Fresh Leads (ignores Sync_Status)."""
+    try:
+        from lead_sync_service import lead_sync_service
+        logger.info("Full sheet sync triggered from API")
+        return lead_sync_service.sync_all_leads()
+    except Exception as exc:
+        logger.error(f"Error during full sync: {exc}")
+        raise HTTPException(status_code=500, detail=str(exc))
+
+
 @router.get("/api/sync/google-sheets/test-connection")
 async def test_google_sheets_connection():
     """Test Google Sheets connection and show sheet preview."""
