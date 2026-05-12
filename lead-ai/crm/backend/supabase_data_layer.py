@@ -315,34 +315,37 @@ class SupabaseDataLayer:
     }
 
     def create_lead(self, data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
-        """Create new lead — retries without ALL optional columns if any schema error occurs."""
+        """Create new lead — retries without optional columns on schema errors.
+        Raises on failure so callers get a real error message."""
+        now = datetime.utcnow().isoformat() + 'Z'
+        data['created_at'] = now
+        data['updated_at'] = now
+        for key, value in list(data.items()):
+            if isinstance(value, datetime):
+                iso = value.isoformat()
+                data[key] = iso if iso.endswith('Z') or '+' in iso else iso + 'Z'
+        cleaned_data = {k: v for k, v in data.items() if v is not None}
+        cleaned_data = self._strip_tenant_id(cleaned_data)
+
+        # --- Attempt 1: full payload ---
+        first_error = None
         try:
-            now = datetime.utcnow().isoformat() + 'Z'
-            data['created_at'] = now
-            data['updated_at'] = now
-            for key, value in list(data.items()):
-                if isinstance(value, datetime):
-                    iso = value.isoformat()
-                    data[key] = iso if iso.endswith('Z') or '+' in iso else iso + 'Z'
-            cleaned_data = {k: v for k, v in data.items() if v is not None}
-            cleaned_data = self._strip_tenant_id(cleaned_data)
-            try:
-                response = self.client.table('leads').insert(cleaned_data).execute()
-                return response.data[0] if response.data else None
-            except Exception as e:
-                # On ANY error, strip ALL optional columns and retry once.
-                logger.warning(f"Lead insert failed ({e}) — retrying without optional columns")
-                for col in self._OPTIONAL_COLUMNS:
-                    cleaned_data.pop(col, None)
-                try:
-                    response = self.client.table('leads').insert(cleaned_data).execute()
-                    return response.data[0] if response.data else None
-                except Exception as e2:
-                    logger.error(f"Lead insert retry also failed: {e2}", exc_info=True)
-                    raise RuntimeError(str(e2)) from None
+            response = self.client.table('leads').insert(cleaned_data).execute()
+            return response.data[0] if response.data else None
         except Exception as e:
-            logger.error(f"Error creating lead in Supabase: {e}", exc_info=True)
-            return None
+            first_error = e
+            logger.warning(f"Lead insert attempt 1 failed ({e}) — retrying without optional columns")
+
+        # --- Attempt 2: minimal payload (strip optional columns) ---
+        minimal_data = {k: v for k, v in cleaned_data.items() if k not in self._OPTIONAL_COLUMNS}
+        try:
+            response = self.client.table('leads').insert(minimal_data).execute()
+            return response.data[0] if response.data else None
+        except Exception as e2:
+            logger.error(f"Lead insert attempt 2 also failed: {e2}", exc_info=True)
+            # Raise a clear RuntimeError — webhooks_router will catch this and
+            # surface it in the per-row detail field instead of "create_lead returned None"
+            raise RuntimeError(f"DB insert failed: {e2}") from None
     
     def delete_lead(self, lead_id: str) -> bool:
         """Delete lead and all its child records"""
