@@ -33,7 +33,8 @@ import { getAuthToken } from './AuthContext';
 const WebSocketContext = createContext(null);
 
 // ── Exponential back-off reconnect delays (ms) ────────────────────────────────
-const BACKOFF = [1_000, 2_000, 4_000, 8_000, 15_000, 30_000];
+const BACKOFF = [2_000, 4_000, 8_000, 15_000, 30_000, 60_000];
+const MAX_RECONNECT_ATTEMPTS = 6; // stop retrying after this many failures
 
 // ── Build the WebSocket URL from the REST API base URL ───────────────────────
 function buildWsUrl(tenantId, token) {
@@ -105,6 +106,12 @@ export function WebSocketProvider({ children }) {
 
       // 4001 = missing token, 4003 = auth failed → don't reconnect
       if (event.code === 4001 || event.code === 4003) return;
+
+      // Stop retrying after max attempts (avoids console spam on Render free tier)
+      if (attemptRef.current >= MAX_RECONNECT_ATTEMPTS) {
+        console.warn('[WS] Max reconnect attempts reached. Real-time updates paused.');
+        return;
+      }
 
       // Schedule reconnect with back-off
       const delay = BACKOFF[Math.min(attemptRef.current, BACKOFF.length - 1)];

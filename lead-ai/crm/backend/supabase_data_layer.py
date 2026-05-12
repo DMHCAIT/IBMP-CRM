@@ -272,7 +272,12 @@ class SupabaseDataLayer:
                 data[key] = iso if iso.endswith('Z') or '+' in iso else iso + 'Z'
         cleaned_data = {k: v for k, v in data.items() if v is not None}
         
-        NEW_COLUMNS = {'company', 'qualification', 'utm_source', 'utm_medium', 'utm_campaign'}
+        NEW_COLUMNS = {
+            'company', 'qualification', 'utm_source', 'utm_medium', 'utm_campaign',
+            'campaign_name', 'campaign_medium', 'campaign_group',
+            'lead_quality', 'lead_rating', 'city',
+            'ad_name', 'adset_name', 'form_name', 'notes',
+        }
         try:
             response = self.client.table('leads').update(cleaned_data).eq('lead_id', lead_id).execute()
             return response.data[0] if response.data else None
@@ -292,8 +297,18 @@ class SupabaseDataLayer:
             logger.error(f"Error updating lead {lead_id}: {e}", exc_info=True)
             return None
     
+    # All optional columns that may not yet exist in the Supabase schema.
+    # If an INSERT fails because one of these is missing, we retry without it.
+    _OPTIONAL_COLUMNS = {
+        'company', 'qualification', 'utm_source', 'utm_medium', 'utm_campaign',
+        'campaign_name', 'campaign_medium', 'campaign_group',
+        'lead_quality', 'lead_rating', 'city',
+        'ad_name', 'adset_name', 'form_name',
+        'notes',
+    }
+
     def create_lead(self, data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
-        """Create new lead"""
+        """Create new lead — retries without optional columns if schema is missing them."""
         try:
             now = datetime.utcnow().isoformat() + 'Z'
             data['created_at'] = now
@@ -303,8 +318,20 @@ class SupabaseDataLayer:
                     iso = value.isoformat()
                     data[key] = iso if iso.endswith('Z') or '+' in iso else iso + 'Z'
             cleaned_data = {k: v for k, v in data.items() if v is not None}
-            response = self.client.table('leads').insert(cleaned_data).execute()
-            return response.data[0] if response.data else None
+            try:
+                response = self.client.table('leads').insert(cleaned_data).execute()
+                return response.data[0] if response.data else None
+            except Exception as e:
+                # Strip any optional columns the schema doesn't have yet and retry once
+                err_str = str(e)
+                missing = [c for c in self._OPTIONAL_COLUMNS if c in err_str]
+                if missing:
+                    for col in missing:
+                        cleaned_data.pop(col, None)
+                        logger.warning(f"Column '{col}' missing in Supabase leads table — skipping")
+                    response = self.client.table('leads').insert(cleaned_data).execute()
+                    return response.data[0] if response.data else None
+                raise
         except Exception as e:
             logger.error(f"Error creating lead in Supabase: {e}", exc_info=True)
             return None

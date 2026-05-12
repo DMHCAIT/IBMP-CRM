@@ -10,24 +10,22 @@ import {
   RocketOutlined, DollarOutlined, FireOutlined, 
   RiseOutlined, PhoneOutlined, TeamOutlined 
 } from '@ant-design/icons';
-import axios from 'axios';
+import api from '../api/api';
 
 const { Option } = Select;
 const { Search } = Input;
 
-const API_BASE = process.env.REACT_APP_API_BASE || 'http://localhost:8000';
-
-// API calls for campaign analytics
+// API calls for campaign analytics — uses the central api instance (correct base URL + auth header)
 const campaignAPI = {
-  getOverview: () => axios.get(`${API_BASE}/api/analytics/campaigns/overview`),
+  getOverview: () => api.get('/api/analytics/campaigns/overview'),
   getCampaignList: (medium, group) => {
     const params = new URLSearchParams();
     if (medium) params.append('medium', medium);
     if (group) params.append('group', group);
-    return axios.get(`${API_BASE}/api/analytics/campaigns/list?${params.toString()}`);
+    return api.get(`/api/analytics/campaigns/list?${params.toString()}`);
   },
-  getCampaignDetail: (campaignName) => axios.get(`${API_BASE}/api/analytics/campaigns/${encodeURIComponent(campaignName)}`),
-  compareCampaigns: (names) => axios.get(`${API_BASE}/api/analytics/campaigns/compare?campaign_names=${names}`),
+  getCampaignDetail: (campaignName) => api.get(`/api/analytics/campaigns/${encodeURIComponent(campaignName)}`),
+  compareCampaigns: (names) => api.get(`/api/analytics/campaigns/compare?campaign_names=${names}`),
 };
 
 const COLORS = ['#6366f1', '#10b981', '#f59e0b', '#ef4444', '#3b82f6', '#8b5cf6', '#ec4899', '#14b8a6'];
