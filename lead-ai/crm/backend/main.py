@@ -1740,8 +1740,9 @@ def get_db():
 # ============================================================================
 
 @app.get("/")
+@app.head("/")
 async def root():
-    """Root endpoint - API information"""
+    """Root endpoint - API information (HEAD supported for Render health checks)"""
     return {
         "name": "Medical Education CRM API",
         "version": "1.0.0",
