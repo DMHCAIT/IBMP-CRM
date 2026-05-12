@@ -16,7 +16,9 @@ class SupabaseManager:
     
     def __init__(self):
         self.url = os.getenv("SUPABASE_URL")
-        self.key = os.getenv("SUPABASE_KEY") or os.getenv("SUPABASE_SERVICE_ROLE_KEY")
+        # Service role key MUST be preferred — it bypasses RLS so the backend
+        # can read the users table during login (anon key is blocked by RLS).
+        self.key = os.getenv("SUPABASE_SERVICE_ROLE_KEY") or os.getenv("SUPABASE_KEY")
         self.client: Optional[Client] = None
         
         if self.url and self.key:
