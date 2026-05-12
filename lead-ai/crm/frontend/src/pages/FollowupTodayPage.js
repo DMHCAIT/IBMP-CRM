@@ -177,7 +177,7 @@ function LeadRow({ lead, isOverdue, onQuickAction, onChat }) {
         borderLeft: `4px solid ${isOverdue ? '#f5222d' : segmentColor[lead.ai_segment] || '#1890ff'}`,
         background: isOverdue ? '#fff2f0' : '#fff',
       }}
-      bodyStyle={{ padding: '10px 14px' }}
+      styles={{ body: { padding: '10px 14px' }}}
     >
       <Row align="middle" gutter={8} wrap={false}>
         {/* Avatar */}
@@ -430,7 +430,7 @@ export default function FollowupTodayPage() {
       </Row>
 
       {/* Lead list */}
-      <Card bodyStyle={{ padding: 0 }}>
+      <Card styles={{ body: { padding: 0 }}}>
         {isLoading ? (
           <div style={{ textAlign: 'center', padding: 60 }}>
             <Spin size="large" />

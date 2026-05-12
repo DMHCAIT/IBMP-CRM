@@ -1,3 +1,9 @@
+/**
+ * @deprecated Use ProfessionalLayout instead.
+ * TODO: `git rm` this file once confirmed no references remain.
+ */
+export { default } from './ProfessionalLayout';
+
 import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';

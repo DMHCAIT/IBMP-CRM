@@ -64,7 +64,6 @@ dayjs.extend(relativeTime);
 const { Title, Text } = Typography;
 const { RangePicker } = DatePicker;
 const { Option } = Select;
-const { TabPane } = Tabs;
 
 const LeadAnalysisPage = () => {
   const [selectedCountry, setSelectedCountry] = useState('all');
@@ -740,112 +739,126 @@ const LeadAnalysisPage = () => {
 
       {/* Tabs */}
       <Card>
-        <Tabs activeKey={activeTab} onChange={setActiveTab}>
-          <TabPane tab="Overview Charts" key="overview">
-            <Row gutter={[16, 16]}>
-              <Col xs={24} lg={12}>
-                <Card title="Lead Age Distribution">
-                  <ResponsiveContainer width="100%" height={300}>
-                    <BarChart data={ageDistribution}>
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="name" />
-                      <YAxis />
-                      <RechartsTooltip />
-                      <Legend />
-                      <Bar dataKey="count" fill="#1890ff" name="Number of Leads" />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </Card>
-              </Col>
-              <Col xs={24} lg={12}>
-                <Card title="Status Distribution">
-                  <ResponsiveContainer width="100%" height={300}>
-                    <PieChart>
-                      <Pie
-                        data={statusDistribution}
-                        cx="50%"
-                        cy="50%"
-                        labelLine={false}
-                        label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
-                        outerRadius={100}
-                        fill="#8884d8"
-                        dataKey="value"
-                      >
-                        {statusDistribution.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={statusColors[entry.name] || COLORS[index % COLORS.length]} />
-                        ))}
-                      </Pie>
-                      <RechartsTooltip />
-                    </PieChart>
-                  </ResponsiveContainer>
-                </Card>
-              </Col>
-              <Col xs={24} lg={12}>
-                <Card title="Top 10 Countries">
-                  <ResponsiveContainer width="100%" height={300}>
-                    <BarChart data={countryDistribution} layout="vertical">
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis type="number" />
-                      <YAxis dataKey="name" type="category" width={100} />
-                      <RechartsTooltip />
-                      <Bar dataKey="value" fill="#52c41a" name="Leads" />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </Card>
-              </Col>
-              <Col xs={24} lg={12}>
-                <Card title="Top 10 Courses">
-                  <ResponsiveContainer width="100%" height={300}>
-                    <BarChart data={courseDistribution} layout="vertical">
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis type="number" />
-                      <YAxis dataKey="name" type="category" width={150} />
-                      <RechartsTooltip />
-                      <Bar dataKey="value" fill="#722ed1" name="Leads" />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </Card>
-              </Col>
-              <Col xs={24}>
-                <Card title="Lead Aging Analysis (Age vs Days Since Update)">
-                  <ResponsiveContainer width="100%" height={400}>
-                    <ScatterChart>
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="age" name="Lead Age (days)" />
-                      <YAxis dataKey="daysSinceUpdate" name="Days Since Update" />
-                      <RechartsTooltip cursor={{ strokeDasharray: '3 3' }} />
-                      <Legend />
-                      <Scatter name="Leads" data={agingScatterData} fill="#1890ff" />
-                    </ScatterChart>
-                  </ResponsiveContainer>
-                  <Text type="secondary" style={{ display: 'block', marginTop: 8 }}>
-                    Dots in the upper right indicate old leads that haven't been updated recently (require attention)
-                  </Text>
-                </Card>
-              </Col>
-            </Row>
-          </TabPane>
-
-          <TabPane tab="User Performance" key="performance">
-            <Table
-              columns={userColumns}
-              dataSource={userPerformance}
-              rowKey="userId"
-              scroll={{ x: 1500 }}
-              pagination={{ pageSize: 10 }}
-            />
-          </TabPane>
-
-          <TabPane tab="Detailed Leads" key="details">
-            <Table
-              columns={columns}
-              dataSource={filteredLeads}
-              rowKey="id"
-              scroll={{ x: 1800 }}
-              pagination={{ pageSize: 20, showSizeChanger: true, showTotal: (total) => `Total ${total} leads` }}
-            />
-          </TabPane>
-        </Tabs>
+        <Tabs
+          activeKey={activeTab}
+          onChange={setActiveTab}
+          items={[
+            {
+              key: 'overview',
+              label: 'Overview Charts',
+              children: (
+                <Row gutter={[16, 16]}>
+                  <Col xs={24} lg={12}>
+                    <Card title="Lead Age Distribution">
+                      <ResponsiveContainer width="100%" height={300}>
+                        <BarChart data={ageDistribution}>
+                          <CartesianGrid strokeDasharray="3 3" />
+                          <XAxis dataKey="name" />
+                          <YAxis />
+                          <RechartsTooltip />
+                          <Legend />
+                          <Bar dataKey="count" fill="#1890ff" name="Number of Leads" />
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </Card>
+                  </Col>
+                  <Col xs={24} lg={12}>
+                    <Card title="Status Distribution">
+                      <ResponsiveContainer width="100%" height={300}>
+                        <PieChart>
+                          <Pie
+                            data={statusDistribution}
+                            cx="50%"
+                            cy="50%"
+                            labelLine={false}
+                            label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                            outerRadius={100}
+                            fill="#8884d8"
+                            dataKey="value"
+                          >
+                            {statusDistribution.map((entry, index) => (
+                              <Cell key={`cell-${index}`} fill={statusColors[entry.name] || COLORS[index % COLORS.length]} />
+                            ))}
+                          </Pie>
+                          <RechartsTooltip />
+                        </PieChart>
+                      </ResponsiveContainer>
+                    </Card>
+                  </Col>
+                  <Col xs={24} lg={12}>
+                    <Card title="Top 10 Countries">
+                      <ResponsiveContainer width="100%" height={300}>
+                        <BarChart data={countryDistribution} layout="vertical">
+                          <CartesianGrid strokeDasharray="3 3" />
+                          <XAxis type="number" />
+                          <YAxis dataKey="name" type="category" width={100} />
+                          <RechartsTooltip />
+                          <Bar dataKey="value" fill="#52c41a" name="Leads" />
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </Card>
+                  </Col>
+                  <Col xs={24} lg={12}>
+                    <Card title="Top 10 Courses">
+                      <ResponsiveContainer width="100%" height={300}>
+                        <BarChart data={courseDistribution} layout="vertical">
+                          <CartesianGrid strokeDasharray="3 3" />
+                          <XAxis type="number" />
+                          <YAxis dataKey="name" type="category" width={150} />
+                          <RechartsTooltip />
+                          <Bar dataKey="value" fill="#722ed1" name="Leads" />
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </Card>
+                  </Col>
+                  <Col xs={24}>
+                    <Card title="Lead Aging Analysis (Age vs Days Since Update)">
+                      <ResponsiveContainer width="100%" height={400}>
+                        <ScatterChart>
+                          <CartesianGrid strokeDasharray="3 3" />
+                          <XAxis dataKey="age" name="Lead Age (days)" />
+                          <YAxis dataKey="daysSinceUpdate" name="Days Since Update" />
+                          <RechartsTooltip cursor={{ strokeDasharray: '3 3' }} />
+                          <Legend />
+                          <Scatter name="Leads" data={agingScatterData} fill="#1890ff" />
+                        </ScatterChart>
+                      </ResponsiveContainer>
+                      <Text type="secondary" style={{ display: 'block', marginTop: 8 }}>
+                        Dots in the upper right indicate old leads that haven't been updated recently (require attention)
+                      </Text>
+                    </Card>
+                  </Col>
+                </Row>
+              ),
+            },
+            {
+              key: 'performance',
+              label: 'User Performance',
+              children: (
+                <Table
+                  columns={userColumns}
+                  dataSource={userPerformance}
+                  rowKey="userId"
+                  scroll={{ x: 1500 }}
+                  pagination={{ pageSize: 10 }}
+                />
+              ),
+            },
+            {
+              key: 'details',
+              label: 'Detailed Leads',
+              children: (
+                <Table
+                  columns={columns}
+                  dataSource={filteredLeads}
+                  rowKey="id"
+                  scroll={{ x: 1800 }}
+                  pagination={{ pageSize: 20, showSizeChanger: true, showTotal: (total) => `Total ${total} leads` }}
+                />
+              ),
+            },
+          ]}
+        />
       </Card>
     </div>
   );

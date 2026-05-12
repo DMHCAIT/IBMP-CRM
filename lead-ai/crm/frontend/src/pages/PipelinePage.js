@@ -134,7 +134,7 @@ const PipelinePage = () => {
         border: '1px solid #f0f0f0'
       }}
       hoverable
-      bodyStyle={{ padding: '12px' }}
+      styles={{ body: { padding: '12px' }}}
     >
       <Space direction="vertical" size={4} style={{ width: '100%' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -192,7 +192,7 @@ const PipelinePage = () => {
         backgroundColor: stage.bgColor,
         border: `2px solid ${stage.color}`
       }}
-      bodyStyle={{ padding: '16px' }}
+      styles={{ body: { padding: '16px' }}}
     >
       <div style={{ marginBottom: 16 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>

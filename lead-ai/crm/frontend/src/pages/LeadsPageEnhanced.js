@@ -219,6 +219,9 @@ const LeadsPageEnhanced = () => {
 
   const [chatLead, setChatLead] = useState(null);
   const [drawerVisible, setDrawerVisible] = useState(false);
+  // Enrollment payment gate — holds { leadId, lead } while modal is open
+  const [enrollTarget, setEnrollTarget] = useState(null);
+  const [enrollForm] = Form.useForm();
   const [bulkDrawerVisible, setBulkDrawerVisible] = useState(false);
   const [filterDrawerVisible, setFilterDrawerVisible] = useState(false);
   const [importVisible, setImportVisible] = useState(false);
@@ -475,6 +478,11 @@ const LeadsPageEnhanced = () => {
   // change before sending the PUT request.
   const _inlineTimer = useRef({});
   const inlineUpdate = useCallback((leadId, field, value) => {
+    // Intercept: if setting status → Enrolled, show payment details modal first
+    if (field === 'status' && value === 'Enrolled') {
+      setEnrollTarget({ leadId });
+      return;
+    }
     const key = `${leadId}:${field}`;
     if (_inlineTimer.current[key]) clearTimeout(_inlineTimer.current[key]);
     _inlineTimer.current[key] = setTimeout(() => {
@@ -1952,6 +1960,115 @@ const LeadsPageEnhanced = () => {
       </Drawer>
 
       <style>{`.overdue-row { background: #fff2f0 !important; }`}</style>
+
+      {/* ── Enrollment Payment Gate Modal ────────────────────────────────── */}
+      <Modal
+        title="📋 Enrollment Payment Details — Required"
+        open={!!enrollTarget}
+        onCancel={() => { setEnrollTarget(null); enrollForm.resetFields(); }}
+        footer={null}
+        width={520}
+        destroyOnHidden
+      >
+        <div style={{
+          padding: '10px 14px', background: '#eff6ff', borderRadius: 8,
+          marginBottom: 16, fontSize: 13, color: '#1d4ed8', border: '1px solid #bfdbfe',
+        }}>
+          💡 Before marking this lead as <strong>Enrolled</strong>, please fill in the fee and EMI details.
+          This data will be visible to the Accounts team.
+        </div>
+        <Form
+          form={enrollForm}
+          layout="vertical"
+          onFinish={(vals) => {
+            if (!enrollTarget) return;
+            const payContent = JSON.stringify({
+              __type: 'payment',
+              fee_total:     vals.fee_total,
+              fee_collected: vals.fee_collected,
+              emi_amount:    vals.emi_amount || 0,
+              emi_count:     vals.emi_count  || 0,
+              emi_start:     vals.emi_start  ? vals.emi_start.toISOString()  : null,
+              emi_next:      vals.emi_next   ? vals.emi_next.toISOString()   : null,
+            });
+            // 1. Update status to Enrolled + set potential_revenue = fee_total
+            updateMutation.mutate({
+              leadId: enrollTarget.leadId,
+              data: { status: 'Enrolled', potential_revenue: vals.fee_total },
+            });
+            // 2. Save payment note
+            leadsAPI.addNote(enrollTarget.leadId, { content: payContent, channel: 'payment' })
+              .catch(() => {});
+            setEnrollTarget(null);
+            enrollForm.resetFields();
+          }}
+        >
+          <Row gutter={[12, 0]}>
+            <Col span={12}>
+              <Form.Item
+                name="fee_total"
+                label="Total Course Fee (₹)"
+                rules={[{ required: true, message: 'Enter total fee' }]}
+              >
+                <InputNumber
+                  style={{ width: '100%' }}
+                  min={0}
+                  placeholder="e.g. 500000"
+                  formatter={v => v ? `₹ ${v}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',') : ''}
+                  parser={v => v.replace(/₹\s?|(,*)/g, '')}
+                />
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item
+                name="fee_collected"
+                label="Amount Collected (₹)"
+                rules={[{ required: true, message: 'Enter collected amount' }]}
+              >
+                <InputNumber
+                  style={{ width: '100%' }}
+                  min={0}
+                  placeholder="e.g. 100000"
+                  formatter={v => v ? `₹ ${v}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',') : ''}
+                  parser={v => v.replace(/₹\s?|(,*)/g, '')}
+                />
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item name="emi_amount" label="EMI Amount (₹) — if applicable">
+                <InputNumber
+                  style={{ width: '100%' }}
+                  min={0}
+                  placeholder="e.g. 50000"
+                  formatter={v => v ? `₹ ${v}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',') : ''}
+                  parser={v => v.replace(/₹\s?|(,*)/g, '')}
+                />
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item name="emi_count" label="Number of EMIs">
+                <InputNumber style={{ width: '100%' }} min={0} placeholder="e.g. 8" />
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item name="emi_start" label="EMI Start Date">
+                <DatePicker style={{ width: '100%' }} format="DD MMM YYYY" />
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item name="emi_next" label="Next EMI Due Date">
+                <DatePicker style={{ width: '100%' }} format="DD MMM YYYY" />
+              </Form.Item>
+            </Col>
+          </Row>
+          <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 8 }}>
+            <Button onClick={() => { setEnrollTarget(null); enrollForm.resetFields(); }}>Cancel</Button>
+            <Button type="primary" htmlType="submit" style={{ background: '#059669' }}>
+              ✅ Confirm Enrollment
+            </Button>
+          </div>
+        </Form>
+      </Modal>
 
       {/* WhatsApp Chat Drawer */}
       <ChatDrawer lead={chatLead} onClose={() => setChatLead(null)} />

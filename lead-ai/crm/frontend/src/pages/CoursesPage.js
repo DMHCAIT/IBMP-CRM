@@ -1,3 +1,9 @@
+/**
+ * @deprecated Use CoursesPageEnhanced instead.
+ * TODO: `git rm` this file.
+ */
+export { default } from './CoursesPageEnhanced';
+
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Table, Button, Tag, Card, Form, Input, Select, Drawer, message, InputNumber } from 'antd';

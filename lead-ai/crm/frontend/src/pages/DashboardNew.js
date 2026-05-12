@@ -1,3 +1,9 @@
+/**
+ * @deprecated Use RoleBasedDashboard (via App.js routing) instead.
+ * TODO: `git rm` this file.
+ */
+export { default } from './RoleBasedDashboard';
+
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Card, Statistic, Spin, Tag } from 'antd';

@@ -42,10 +42,44 @@ import {
   StarOutlined,
 } from '@ant-design/icons';
 import { leadsAPI, usersAPI } from '../api/api';
+import { getDepartment, DEPT_META } from '../config/rbac';
+
+// Roles grouped by department — used in the Create/Edit user form
+const ROLES_BY_DEPT = [
+  {
+    dept: 'Admin / Top Level',
+    color: '#7c3aed',
+    roles: ['CEO', 'Super Admin'],
+  },
+  {
+    dept: 'Marketing',
+    color: '#2563eb',
+    roles: ['Marketing Manager', 'Marketing Executive'],
+  },
+  {
+    dept: 'Sales',
+    color: '#059669',
+    roles: ['Sales Manager', 'Team Leader', 'Counselor'],
+  },
+  {
+    dept: 'Academic',
+    color: '#0891b2',
+    roles: ['Academic Admin', 'Academic Executive'],
+  },
+  {
+    dept: 'Accounts',
+    color: '#d97706',
+    roles: ['Accounts Manager', 'Finance Executive'],
+  },
+  {
+    dept: 'HR',
+    color: '#dc2626',
+    roles: ['HR Manager', 'HR Executive'],
+  },
+];
 
 const { Title, Text } = Typography;
 const { Option } = Select;
-const { TabPane } = Tabs;
 
 const UsersPage = () => {
   const queryClient = useQueryClient();
@@ -141,53 +175,48 @@ const UsersPage = () => {
     },
   });
 
-  // Calculate stats
+  // Calculate stats — department wise
   const stats = {
-    total: users.length,
-    superAdmin: users.filter(u => u.role === 'Super Admin').length,
-    manager: users.filter(u => u.role === 'Manager').length,
-    teamLeader: users.filter(u => u.role === 'Team Leader').length,
-    counselor: users.filter(u => u.role === 'Counselor').length,
+    total:    users.length,
+    active:   users.filter(u => u.is_active !== false).length,
+    // department counts
+    byDept: ROLES_BY_DEPT.reduce((acc, g) => {
+      acc[g.dept] = users.filter(u => g.roles.includes(u.role)).length;
+      return acc;
+    }, {}),
   };
 
-  // Get role color
+  // Role → color (all 13 roles)
   const getRoleColor = (role) => {
-    const colors = {
-      'Super Admin': '#ff4d4f',
-      'Manager': '#722ed1',
-      'Team Leader': '#1890ff',
-      'Counselor': '#52c41a',
-    };
-    return colors[role] || '#1890ff';
+    const group = ROLES_BY_DEPT.find(g => g.roles.includes(role));
+    return group ? group.color : '#6b7280';
   };
 
-  // Get role icon
+  // Role → icon
   const getRoleIcon = (role) => {
-    const icons = {
-      'Super Admin': <CrownOutlined />,
-      'Manager': <SafetyCertificateOutlined />,
-      'Team Leader': <TeamOutlined />,
-      'Counselor': <UserOutlined />,
-    };
-    return icons[role] || <UserOutlined />;
+    if (['CEO', 'Super Admin'].includes(role))        return <CrownOutlined />;
+    if (role.includes('Manager'))                      return <SafetyCertificateOutlined />;
+    if (role.includes('Leader'))                       return <TeamOutlined />;
+    if (role.includes('Executive') || role.includes('Exec')) return <StarOutlined />;
+    return <UserOutlined />;
   };
 
-  // Get role hierarchy level
+  // Get role hierarchy level (for tree/org chart)
   const getRoleLevel = (role) => {
-    const levels = {
-      'Super Admin': 4,
-      'Manager': 3,
-      'Team Leader': 2,
-      'Counselor': 1,
-    };
-    return levels[role] || 0;
+    if (['CEO', 'Super Admin'].includes(role)) return 4;
+    if (role.includes('Manager'))              return 3;
+    if (role.includes('Leader'))               return 2;
+    return 1;
   };
 
   // Get subordinate roles
   const getSubordinateRoles = (role) => {
-    if (role === 'Super Admin') return ['Manager', 'Team Leader', 'Counselor'];
-    if (role === 'Manager') return ['Team Leader', 'Counselor'];
-    if (role === 'Team Leader') return ['Counselor'];
+    if (['CEO', 'Super Admin'].includes(role))
+      return ROLES_BY_DEPT.flatMap(g => g.roles).filter(r => !['CEO', 'Super Admin'].includes(r));
+    const group = ROLES_BY_DEPT.find(g => g.roles.includes(role));
+    if (!group) return [];
+    if (role.includes('Manager') || role.includes('Leader'))
+      return group.roles.filter(r => r !== role);
     return [];
   };
 
@@ -319,18 +348,30 @@ const UsersPage = () => {
       ),
     },
     {
+      title: 'Department',
+      key: 'department',
+      width: 130,
+      filters: [
+        'CEO', 'Marketing', 'Sales', 'Academic', 'Accounts', 'HR', 'Admin',
+      ].map(d => ({ text: d, value: d })),
+      onFilter: (value, record) => getDepartment(record.role) === value,
+      render: (_, record) => {
+        const dept = getDepartment(record.role);
+        const meta = DEPT_META[dept] || { color: '#6b7280', bg: '#f3f4f6', label: dept };
+        return (
+          <Tag style={{ color: meta.color, background: meta.bg, border: 'none', fontWeight: 600 }}>
+            {dept}
+          </Tag>
+        );
+      },
+    },
+    {
       title: 'Role',
       dataIndex: 'role',
       key: 'role',
-      width: 150,
-      filters: [
-        { text: 'All Roles', value: 'all' },
-        { text: 'Super Admin', value: 'Super Admin' },
-        { text: 'Manager', value: 'Manager' },
-        { text: 'Team Leader', value: 'Team Leader' },
-        { text: 'Counselor', value: 'Counselor' },
-      ],
-      onFilter: (value, record) => value === 'all' || record.role === value,
+      width: 160,
+      filters: ROLES_BY_DEPT.flatMap(g => g.roles).map(r => ({ text: r, value: r })),
+      onFilter: (value, record) => record.role === value,
       render: (role) => (
         <Tag color={getRoleColor(role)} icon={getRoleIcon(role)}>
           {role}
@@ -490,58 +531,35 @@ const UsersPage = () => {
 
   return (
     <div style={{ padding: '24px', background: '#f0f2f5', minHeight: '100vh' }}>
-      {/* Stats */}
-      <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
-        <Col xs={24} sm={12} md={6} lg={4}>
-          <Card size="small">
+      {/* Stats — department wise */}
+      <Row gutter={[12, 12]} style={{ marginBottom: 24 }}>
+        <Col xs={12} sm={8} md={4}>
+          <Card size="small" style={{ borderTop: '3px solid #2563eb' }}>
             <Statistic
               title="Total Users"
               value={stats.total}
               prefix={<UsergroupAddOutlined />}
-              valueStyle={{ color: '#1890ff', fontSize: 24 }}
+              valueStyle={{ color: '#2563eb', fontSize: 22 }}
             />
+            <div style={{ fontSize: 11, color: '#6b7280', marginTop: 2 }}>
+              {stats.active} active
+            </div>
           </Card>
         </Col>
-        <Col xs={24} sm={12} md={6} lg={5}>
-          <Card size="small">
-            <Statistic
-              title="Super Admins"
-              value={stats.superAdmin}
-              prefix={<CrownOutlined />}
-              valueStyle={{ color: '#ff4d4f', fontSize: 24 }}
-            />
-          </Card>
-        </Col>
-        <Col xs={24} sm={12} md={6} lg={5}>
-          <Card size="small">
-            <Statistic
-              title="Managers"
-              value={stats.manager}
-              prefix={<SafetyCertificateOutlined />}
-              valueStyle={{ color: '#722ed1', fontSize: 24 }}
-            />
-          </Card>
-        </Col>
-        <Col xs={24} sm={12} md={6} lg={5}>
-          <Card size="small">
-            <Statistic
-              title="Team Leaders"
-              value={stats.teamLeader}
-              prefix={<TeamOutlined />}
-              valueStyle={{ color: '#1890ff', fontSize: 24 }}
-            />
-          </Card>
-        </Col>
-        <Col xs={24} sm={12} md={6} lg={5}>
-          <Card size="small">
-            <Statistic
-              title="Counselors"
-              value={stats.counselor}
-              prefix={<UserOutlined />}
-              valueStyle={{ color: '#52c41a', fontSize: 24 }}
-            />
-          </Card>
-        </Col>
+        {ROLES_BY_DEPT.map(group => (
+          <Col xs={12} sm={8} md={4} key={group.dept}>
+            <Card size="small" style={{ borderTop: `3px solid ${group.color}` }}>
+              <Statistic
+                title={group.dept}
+                value={stats.byDept[group.dept] || 0}
+                valueStyle={{ color: group.color, fontSize: 22 }}
+              />
+              <div style={{ fontSize: 11, color: '#6b7280', marginTop: 2 }}>
+                {group.roles.join(' · ')}
+              </div>
+            </Card>
+          </Col>
+        ))}
       </Row>
 
       {/* Main Card */}
@@ -692,26 +710,36 @@ const UsersPage = () => {
 
           <Form.Item
             name="role"
-            label="Role"
-            rules={[{ required: true, message: 'Please select role' }]}
+            label="Role — select by department"
+            rules={[{ required: true, message: 'Please select a role' }]}
           >
-            <Select size="large" placeholder="Select role">
-              <Option value="Super Admin">
-                <CrownOutlined style={{ color: '#ff4d4f', marginRight: 8 }} />
-                Super Admin
-              </Option>
-              <Option value="Manager">
-                <SafetyCertificateOutlined style={{ color: '#722ed1', marginRight: 8 }} />
-                Manager
-              </Option>
-              <Option value="Team Leader">
-                <TeamOutlined style={{ color: '#1890ff', marginRight: 8 }} />
-                Team Leader
-              </Option>
-              <Option value="Counselor">
-                <UserOutlined style={{ color: '#52c41a', marginRight: 8 }} />
-                Counselor
-              </Option>
+            <Select
+              size="large"
+              placeholder="Choose department → role"
+              showSearch
+              optionFilterProp="label"
+            >
+              {ROLES_BY_DEPT.map(group => (
+                <Select.OptGroup
+                  key={group.dept}
+                  label={
+                    <span style={{ color: group.color, fontWeight: 700, fontSize: 12 }}>
+                      {group.dept.toUpperCase()}
+                    </span>
+                  }
+                >
+                  {group.roles.map(role => (
+                    <Option key={role} value={role} label={role}>
+                      <span style={{
+                        display: 'inline-block', width: 10, height: 10,
+                        borderRadius: '50%', background: group.color,
+                        marginRight: 8, verticalAlign: 'middle',
+                      }} />
+                      {role}
+                    </Option>
+                  ))}
+                </Select.OptGroup>
+              ))}
             </Select>
           </Form.Item>
 

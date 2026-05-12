@@ -155,7 +155,7 @@ const FieldMappingModal = ({ visible, onCancel, fileColumns, previewData, onConf
           Confirm & Import {previewData?.length || 0} Leads
         </Button>,
       ]}
-      bodyStyle={{ maxHeight: '70vh', overflowY: 'auto' }}
+      styles={{ body: { maxHeight: '70vh', overflowY: 'auto' }}}
     >
       {/* Status Summary */}
       <Card size="small" style={{ marginBottom: 16, background: '#f0f5ff', border: '1px solid #d6e4ff' }}>
@@ -304,7 +304,7 @@ const FieldMappingModal = ({ visible, onCancel, fileColumns, previewData, onConf
       {previewRow && isValidMapping() && (
         <>
           <Divider orientation="left">Preview Mapped Data (First Row)</Divider>
-          <Card size="small" bodyStyle={{ background: '#fafafa' }}>
+          <Card size="small" styles={{ body: { background: '#fafafa' }}}>
             <Row gutter={[8, 8]}>
               {Object.entries(previewRow).map(([field, value]) => {
                 const fieldDef = CRM_FIELDS.find(f => f.key === field);

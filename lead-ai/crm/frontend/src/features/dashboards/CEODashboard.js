@@ -1,3 +1,9 @@
+/**
+ * @deprecated Use CEOCommandCenter instead (it is the canonical CEO dashboard).
+ * TODO: `git rm` this file.
+ */
+export { default } from './CEOCommandCenter';
+
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Row, Col, Card, Statistic, Progress, Table, Tag, Spin } from 'antd';

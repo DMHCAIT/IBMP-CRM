@@ -230,7 +230,7 @@ const CampaignAnalyticsPage = () => {
       {/* Performance by Medium Chart */}
       <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
         <Col xs={24} lg={12}>
-          <Card title="Performance by Medium" bordered={false}>
+          <Card title="Performance by Medium" variant="borderless">
             {overview?.by_medium && overview.by_medium.length > 0 ? (
               <ResponsiveContainer width="100%" height={300}>
                 <BarChart data={overview.by_medium}>
@@ -251,7 +251,7 @@ const CampaignAnalyticsPage = () => {
           </Card>
         </Col>
         <Col xs={24} lg={12}>
-          <Card title="Conversion Rates by Medium" bordered={false}>
+          <Card title="Conversion Rates by Medium" variant="borderless">
             {overview?.by_medium && overview.by_medium.length > 0 ? (
               <ResponsiveContainer width="100%" height={300}>
                 <PieChart>
@@ -311,7 +311,7 @@ const CampaignAnalyticsPage = () => {
       </Card>
 
       {/* Campaign List Table */}
-      <Card title="All Campaigns" bordered={false}>
+      <Card title="All Campaigns" variant="borderless">
         <Table
           columns={columns}
           dataSource={campaigns || []}
@@ -326,7 +326,7 @@ const CampaignAnalyticsPage = () => {
       {selectedCampaign && campaignDetail && (
         <Card 
           title={`Campaign Details: ${selectedCampaign}`} 
-          bordered={false}
+          variant="borderless"
           style={{ marginTop: 24 }}
           extra={<Button onClick={() => setSelectedCampaign(null)}>Close</Button>}
         >

@@ -46,7 +46,6 @@ import { coursesAPI } from '../api/api';
 
 const { Title, Text, Paragraph } = Typography;
 const { Option } = Select;
-const { TabPane } = Tabs;
 
 const CoursesPageEnhanced = () => {
   const queryClient = useQueryClient();
@@ -270,7 +269,7 @@ const CoursesPageEnhanced = () => {
         cursor: 'pointer',
         position: 'relative',
       }}
-      bodyStyle={{ padding: 20 }}
+      styles={{ body: { padding: 20 }}}
       onClick={() => showCourseDetails(course)}
     >
       <div style={{ marginBottom: 12 }}>
@@ -370,7 +369,7 @@ const CoursesPageEnhanced = () => {
         onCancel={() => setModalVisible(false)}
         footer={null}
         width={800}
-        bodyStyle={{ padding: 0 }}
+        styles={{ body: { padding: 0 }}}
       >
         <div style={{ 
           background: `linear-gradient(135deg, ${getCategoryColor(selectedCourse.category)} 0%, ${getCategoryColor(selectedCourse.category)}dd 100%)`,
@@ -605,28 +604,31 @@ const CoursesPageEnhanced = () => {
           </Space>
         }
       >
-        <Tabs activeKey={selectedCategory} onChange={setSelectedCategory} type="card">
-          <TabPane 
-            tab={
-              <span>
-                <AppstoreOutlined />
-                All ({courses.length})
-              </span>
-            } 
-            key="all"
-          />
-          {categories.map(category => (
-            <TabPane
-              tab={
+        <Tabs
+          activeKey={selectedCategory}
+          onChange={setSelectedCategory}
+          type="card"
+          items={[
+            {
+              key: 'all',
+              label: (
+                <span>
+                  <AppstoreOutlined />
+                  All ({courses.length})
+                </span>
+              ),
+            },
+            ...categories.map(category => ({
+              key: category,
+              label: (
                 <span>
                   <Badge color={getCategoryColor(category)} />
                   {category} ({categoryCounts[category]})
                 </span>
-              }
-              key={category}
-            />
-          ))}
-        </Tabs>
+              ),
+            })),
+          ]}
+        />
 
         <Divider style={{ margin: '16px 0' }} />
 
@@ -677,7 +679,7 @@ const CoursesPageEnhanced = () => {
         <Row gutter={[16, 16]} style={{ marginTop: 16 }}>
           {categories.map(category => (
             <Col xs={12} sm={8} md={6} lg={4} key={category}>
-              <Card size="small" bordered={false} style={{ background: '#fafafa' }}>
+              <Card size="small" variant="borderless" style={{ background: '#fafafa' }}>
                 <Statistic
                   title={category}
                   value={categoryCounts[category]}

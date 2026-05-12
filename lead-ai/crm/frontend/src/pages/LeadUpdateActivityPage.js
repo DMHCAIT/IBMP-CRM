@@ -286,7 +286,7 @@ export default function LeadUpdateActivityPage() {
       {/* ── Filters bar ── */}
       <Card
         style={{ marginBottom: 20, borderRadius: 12, border: '1px solid #e8e8f0' }}
-        bodyStyle={{ padding: '16px 20px' }}
+        styles={{ body: { padding: '16px 20px' }}}
       >
         <Space wrap size={12}>
           <DatePicker
@@ -345,7 +345,7 @@ export default function LeadUpdateActivityPage() {
           <Col xs={24} sm={12} md={6} key={s.title}>
             <Card
               style={{ borderRadius: 12, border: `1px solid ${s.color}30`, background: '#fff' }}
-              bodyStyle={{ padding: '16px 20px' }}
+              styles={{ body: { padding: '16px 20px' }}}
             >
               <Statistic
                 title={<span style={{ color: '#64748b', fontSize: 13 }}>{s.title}</span>}
@@ -361,7 +361,7 @@ export default function LeadUpdateActivityPage() {
       {/* ── Main table ── */}
       <Card
         style={{ borderRadius: 12, border: '1px solid #e8e8f0' }}
-        bodyStyle={{ padding: 0 }}
+        styles={{ body: { padding: 0 }}}
       >
         <Table
           dataSource={filteredRows}
@@ -442,7 +442,7 @@ export default function LeadUpdateActivityPage() {
               size="small"
               title={<Text strong>Leads Updated ({drawerLeads.length})</Text>}
               style={{ marginBottom: 16, borderRadius: 10 }}
-              bodyStyle={{ padding: 0 }}
+              styles={{ body: { padding: 0 }}}
             >
               <Table
                 dataSource={drawerLeads}

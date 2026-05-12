@@ -15,8 +15,12 @@ from exceptions import CRMException, to_http_exception
 
 class LoggingMiddleware(BaseHTTPMiddleware):
     """Middleware for logging all API requests and responses"""
-    
+
     async def dispatch(self, request: Request, call_next: Callable) -> Response:
+        # BaseHTTPMiddleware breaks WebSocket upgrade — pass through unchanged
+        if request.scope.get("type") == "websocket":
+            return await call_next(request)
+
         # Generate request ID
         request_id = f"{int(time.time() * 1000)}"
         
@@ -98,8 +102,12 @@ class LoggingMiddleware(BaseHTTPMiddleware):
 
 class ErrorHandlingMiddleware(BaseHTTPMiddleware):
     """Middleware for centralized error handling"""
-    
+
     async def dispatch(self, request: Request, call_next: Callable) -> Response:
+        # BaseHTTPMiddleware breaks WebSocket upgrade — pass through unchanged
+        if request.scope.get("type") == "websocket":
+            return await call_next(request)
+
         try:
             return await call_next(request)
             
@@ -188,12 +196,16 @@ class ErrorHandlingMiddleware(BaseHTTPMiddleware):
 
 class PerformanceMonitoringMiddleware(BaseHTTPMiddleware):
     """Middleware for monitoring slow requests"""
-    
+
     SLOW_REQUEST_THRESHOLD = 1.0  # seconds
-    
+
     async def dispatch(self, request: Request, call_next: Callable) -> Response:
+        # BaseHTTPMiddleware breaks WebSocket upgrade — pass through unchanged
+        if request.scope.get("type") == "websocket":
+            return await call_next(request)
+
         start_time = time.time()
-        
+
         response = await call_next(request)
         
         duration = time.time() - start_time

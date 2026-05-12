@@ -381,7 +381,7 @@ export default function UserActivityPage() {
                     <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
                       {/* Daily trend */}
                       <Col xs={24} lg={16}>
-                        <Card title="Daily Activity Trend" bordered={false}>
+                        <Card title="Daily Activity Trend" variant="borderless">
                           {dailyActivity.length === 0 ? (
                             <Empty description="No activity in this period" />
                           ) : (
@@ -403,7 +403,7 @@ export default function UserActivityPage() {
 
                       {/* Status pie */}
                       <Col xs={24} lg={8}>
-                        <Card title="Status Distribution" bordered={false}>
+                        <Card title="Status Distribution" variant="borderless">
                           {statusDist.length === 0 ? (
                             <Empty description="No leads found" />
                           ) : (
@@ -430,7 +430,7 @@ export default function UserActivityPage() {
                     </Row>
 
                     {/* Status breakdown cards */}
-                    <Card title="Performance Breakdown" bordered={false}>
+                    <Card title="Performance Breakdown" variant="borderless">
                       <Row gutter={[16, 16]}>
                         {[
                           { label: 'Enrolled',  val: metrics.enrolled,  color: '#52c41a', bg: '#f6ffed', border: '#b7eb8f', prefix: <CheckCircleOutlined /> },
@@ -464,7 +464,7 @@ export default function UserActivityPage() {
                 key: 'leaderboard',
                 label: <span><TrophyOutlined /> Leaderboard</span>,
                 children: (
-                  <Card title="User Performance Leaderboard" bordered={false}>
+                  <Card title="User Performance Leaderboard" variant="borderless">
                     {usersWithMetrics.length === 0 ? (
                       <Empty description="No users found" />
                     ) : (

@@ -337,7 +337,7 @@ const DuplicateDetectionModal = ({
       width={660}
       footer={null}
       style={{ top: 40 }}
-      bodyStyle={{ padding: '16px 24px 24px' }}
+      styles={{ body: { padding: '16px 24px 24px' }}}
     >
       {/* ── STEP 1: list of duplicates ───────────────────────── */}
       {step === 'list' && (

@@ -1,3 +1,10 @@
+/**
+ * @deprecated Typo-duplicate of CounselorDashboard.js (single-l).
+ * Use CounselorDashboard instead.
+ * TODO: `git rm` this file.
+ */
+export { default } from './CounselorDashboard';
+
 import React from 'react';
 import { motion } from 'framer-motion';
 import {

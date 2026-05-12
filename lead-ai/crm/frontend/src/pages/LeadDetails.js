@@ -83,6 +83,7 @@ const parseDate = (s) => {
 };
 
 import ActivityTimeline from '../features/activity/ActivityTimeline';
+import LeadTimeline from '../components/LeadTimeline';
 import CallTimeWidget from '../components/leads/CallTimeWidget';
 import WhatsAppTemplateDrawer from '../components/whatsapp/WhatsAppTemplateDrawer';
 import { isFeatureEnabled } from '../config/featureFlags';
@@ -1265,12 +1266,24 @@ const LeadDetails = () => {
             </Card>
           )}
 
-          {/* Activity Timeline */}
-          {isFeatureEnabled('ACTIVITY_TIMELINE') && (
-            <Card title="Activity Timeline" style={{ marginBottom: '24px' }}>
-              <ActivityTimeline leadId={leadId} />
-            </Card>
-          )}
+          {/* Unified Lead Timeline — replaces legacy ActivityTimeline */}
+          <Card
+            title={
+              <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                Activity &amp; Communications
+                <span style={{
+                  fontSize: 11, fontWeight: 400, color: '#64748b',
+                  background: '#f1f5f9', padding: '1px 6px', borderRadius: 4,
+                }}>
+                  live
+                </span>
+              </span>
+            }
+            style={{ marginBottom: '24px' }}
+            styles={{ body: { padding: '12px 20px' }}}
+          >
+            <LeadTimeline leadId={leadId} />
+          </Card>
         </Col>
       </Row>
 

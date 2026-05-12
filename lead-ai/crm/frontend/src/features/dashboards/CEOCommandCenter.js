@@ -4,6 +4,7 @@
  * Shows department cards → click any card → drill-down detail panel.
  */
 import React, { useState, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -493,15 +494,14 @@ const DetailPanel = ({ dept, onBack, leads, users }) => {
 // ─────────────────────────────────────────────────────────────────────────────
 // DEPARTMENT CARD
 // ─────────────────────────────────────────────────────────────────────────────
-const DeptCard = ({ dept, metrics, onClick }) => {
+const DeptCard = ({ dept, metrics, onNavigate, onDetails }) => {
   const meta = DEPT_META[dept.id] || { color:'#374151', bg:'#f3f4f6', label:dept.id };
   const m    = metrics[dept.id] || {};
 
   return (
     <motion.div
       whileHover={{ y: -4, boxShadow: `0 8px 32px ${meta.color}30` }}
-      whileTap={{ scale: 0.98 }}
-      onClick={onClick}
+      onClick={onNavigate}
       style={{
         background:'var(--bg-primary)',
         borderRadius:14,
@@ -556,11 +556,23 @@ const DeptCard = ({ dept, metrics, onClick }) => {
             {m.teamSize ? `${m.teamSize} staff` : 'No team data'}
           </span>
         </div>
-        <div style={{
-          display:'flex', alignItems:'center', gap:4, fontSize:12,
-          color:meta.color, fontWeight:600,
-        }}>
-          View Details <ChevronRight size={13} />
+        <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+          <button
+            onClick={e => { e.stopPropagation(); onDetails(); }}
+            style={{
+              fontSize:11, padding:'3px 8px', borderRadius:6,
+              border:`1px solid ${meta.color}40`, background:'transparent',
+              color:meta.color, cursor:'pointer',
+            }}
+          >
+            Quick View
+          </button>
+          <div style={{
+            display:'flex', alignItems:'center', gap:4, fontSize:12,
+            color:meta.color, fontWeight:600,
+          }}>
+            Open <ChevronRight size={13} />
+          </div>
         </div>
       </div>
     </motion.div>
@@ -617,6 +629,7 @@ const DEPARTMENTS_CONFIG = [
     label: 'Marketing',
     icon:  '📣',
     desc:  'Lead generation & campaigns',
+    route: '/campaigns',
     metrics: [
       { key:'totalLeads', label:'Total Leads' },
       { key:'newToday',   label:'Today' },
@@ -628,6 +641,7 @@ const DEPARTMENTS_CONFIG = [
     label: 'Sales',
     icon:  '📞',
     desc:  'Counseling & follow-ups',
+    route: '/leads',
     metrics: [
       { key:'activeLeads', label:'Active' },
       { key:'hotLeads',    label:'Hot' },
@@ -639,6 +653,7 @@ const DEPARTMENTS_CONFIG = [
     label: 'Academic',
     icon:  '🎓',
     desc:  'Course enrollments & student management',
+    route: '/academic',
     metrics: [
       { key:'enrolled',   label:'Enrolled' },
       { key:'courses',    label:'Courses' },
@@ -650,6 +665,7 @@ const DEPARTMENTS_CONFIG = [
     label: 'Accounts',
     icon:  '💰',
     desc:  'Revenue & fee collection',
+    route: '/payments',
     metrics: [
       { key:'revenue',    label:'Revenue' },
       { key:'enrolled',   label:'Enrolled' },
@@ -661,6 +677,7 @@ const DEPARTMENTS_CONFIG = [
     label: 'HR',
     icon:  '👥',
     desc:  'Employee management',
+    route: '/hr',
     metrics: [
       { key:'totalStaff', label:'Total Staff' },
       { key:'activeStaff',label:'Active' },
@@ -672,6 +689,7 @@ const DEPARTMENTS_CONFIG = [
     label: 'System / IT',
     icon:  '⚙️',
     desc:  'System health & admin',
+    route: '/users',
     metrics: [
       { key:'totalRecords',label:'Records' },
       { key:'users',       label:'Users' },
@@ -681,6 +699,7 @@ const DEPARTMENTS_CONFIG = [
 ];
 
 export default function CEOCommandCenter() {
+  const navigate    = useNavigate();
   const [activeDept, setActiveDept] = useState(null);
 
   const { data: leadsResp, isLoading: leadsLoading, refetch: refetchLeads } = useQuery({
@@ -814,7 +833,8 @@ export default function CEOCommandCenter() {
               key={dept.id}
               dept={dept}
               metrics={metrics}
-              onClick={() => setActiveDept(activeDept?.id === dept.id ? null : dept)}
+              onNavigate={() => navigate(dept.route)}
+              onDetails={() => setActiveDept(activeDept?.id === dept.id ? null : dept)}
             />
           ))}
         </div>

@@ -1,17 +1,17 @@
 /**
  * Academic Page
  * Manages enrolled students — course tracking, document collection,
- * seat confirmation and course progress. No university / visa flow.
+ * seat confirmation and LMS credential creation. No university / visa flow.
  */
 import React, { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   Table, Card, Row, Col, Tag, Button, Input, Select,
-  Statistic, Spin, Badge, Modal, Tabs,
+  Statistic, Spin, Badge, Modal, Form, message, Tooltip,
 } from 'antd';
 import {
   GraduationCap, FileText, CheckCircle, Search, Eye,
-  BookOpen, Users, ClipboardList, TrendingUp,
+  BookOpen, TrendingUp, ClipboardList, Monitor, Lock, Globe,
 } from 'lucide-react';
 import { leadsAPI } from '../api/api';
 import { useNavigate } from 'react-router-dom';
@@ -31,19 +31,18 @@ const REQUIRED_DOCS = [
   'Bank Challan / Fee Receipt',
 ];
 
-// ── Course progress stages (internal Academic workflow) ────────────────────
-const COURSE_STAGES = [
-  { key: 'enrolled',    label: 'Enrolled',          color: '#7c3aed', desc: 'Seat booked, payment done' },
-  { key: 'docs',        label: 'Docs Collected',    color: '#d97706', desc: 'All documents received' },
-  { key: 'registered',  label: 'Seat Confirmed',    color: '#2563eb', desc: 'Officially registered' },
-  { key: 'active',      label: 'Course Active',     color: '#059669', desc: 'Student attending' },
-  { key: 'completed',   label: 'Course Completed',  color: '#374151', desc: 'Course finished' },
-];
+// ── Parse LMS note from lead.notes ─────────────────────────────────────────
+const getLmsData = (lead) => {
+  const note = (lead.notes || []).find(n => n.channel === 'lms');
+  if (!note) return null;
+  try { return JSON.parse(note.content); } catch { return null; }
+};
 
 // ── Student Detail Modal ────────────────────────────────────────────────────
 const StudentModal = ({ lead, open, onClose }) => {
   const navigate = useNavigate();
   if (!lead) return null;
+  const lms = getLmsData(lead);
 
   return (
     <Modal
@@ -90,6 +89,34 @@ const StudentModal = ({ lead, open, onClose }) => {
           ))}
         </Row>
 
+        {/* LMS credentials (if created) */}
+        {lms && (
+          <div style={{
+            padding: '12px 16px', background: '#f0fdf4', borderRadius: 10,
+            border: '1px solid #86efac',
+          }}>
+            <div style={{ fontSize: 12, fontWeight: 600, color: '#166534', marginBottom: 8 }}>
+              ✅ LMS Credentials Created
+            </div>
+            <Row gutter={[12, 8]}>
+              <Col span={12}>
+                <div style={{ fontSize: 11, color: '#166534' }}>Username</div>
+                <div style={{ fontWeight: 600, fontSize: 13 }}>{lms.username}</div>
+              </Col>
+              <Col span={12}>
+                <div style={{ fontSize: 11, color: '#166534' }}>Password</div>
+                <div style={{ fontWeight: 600, fontSize: 13 }}>{'•'.repeat(8)}</div>
+              </Col>
+              {lms.portal && (
+                <Col span={24}>
+                  <div style={{ fontSize: 11, color: '#166534' }}>Portal</div>
+                  <div style={{ fontSize: 13 }}>{lms.portal}</div>
+                </Col>
+              )}
+            </Row>
+          </div>
+        )}
+
         {/* Document checklist */}
         <div>
           <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-tertiary)', marginBottom: 8 }}>
@@ -103,25 +130,96 @@ const StudentModal = ({ lead, open, onClose }) => {
             ))}
           </div>
         </div>
-
-        {/* Notes */}
-        {lead.notes && (
-          <div style={{ padding: '10px 14px', background: '#fefce8', borderRadius: 8, fontSize: 13 }}>
-            <strong>Notes: </strong>{lead.notes}
-          </div>
-        )}
       </div>
+    </Modal>
+  );
+};
+
+// ── LMS Credential Modal ────────────────────────────────────────────────────
+const LmsModal = ({ lead, open, onClose }) => {
+  const [form] = Form.useForm();
+  const queryClient = useQueryClient();
+
+  const lmsMutation = useMutation({
+    mutationFn: ({ leadId, content }) =>
+      leadsAPI.addNote(leadId, { content, channel: 'lms' }),
+    onSuccess: () => {
+      message.success('LMS credentials saved!');
+      queryClient.invalidateQueries({ queryKey: ['leads-academic-page'] });
+      onClose();
+      form.resetFields();
+    },
+    onError: () => message.error('Failed to save LMS credentials'),
+  });
+
+  const handleSubmit = (vals) => {
+    const content = JSON.stringify({
+      __type: 'lms',
+      username: vals.username,
+      password: vals.password,
+      portal: vals.portal || '',
+      created_at: new Date().toISOString(),
+    });
+    lmsMutation.mutate({ leadId: lead.id, content });
+  };
+
+  if (!lead) return null;
+  const existing = getLmsData(lead);
+
+  return (
+    <Modal
+      title={`LMS Credentials — ${lead.full_name}`}
+      open={open}
+      onCancel={onClose}
+      footer={null}
+      width={480}
+    >
+      {existing && (
+        <div style={{
+          padding: '10px 14px', background: '#fef9c3', borderRadius: 8,
+          marginBottom: 16, fontSize: 13, border: '1px solid #fde68a',
+        }}>
+          ⚠️ LMS credentials already exist. Saving will add new credentials (old entry kept as history).
+        </div>
+      )}
+      <Form form={form} layout="vertical" onFinish={handleSubmit}>
+        <Form.Item
+          name="username"
+          label="LMS Username"
+          rules={[{ required: true, message: 'Enter username' }]}
+          initialValue={existing ? `${lead.full_name?.toLowerCase().replace(/\s+/g, '.')}` : undefined}
+        >
+          <Input prefix={<Monitor size={14} />} placeholder="student.username" />
+        </Form.Item>
+        <Form.Item
+          name="password"
+          label="LMS Password"
+          rules={[{ required: true, message: 'Enter password' }]}
+        >
+          <Input.Password prefix={<Lock size={14} />} placeholder="Temporary password" />
+        </Form.Item>
+        <Form.Item name="portal" label="Portal URL (optional)">
+          <Input prefix={<Globe size={14} />} placeholder="https://lms.example.com" />
+        </Form.Item>
+        <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+          <Button onClick={onClose}>Cancel</Button>
+          <Button type="primary" htmlType="submit" loading={lmsMutation.isPending}>
+            Save & Activate LMS
+          </Button>
+        </div>
+      </Form>
     </Modal>
   );
 };
 
 // ── Main Page ───────────────────────────────────────────────────────────────
 const AcademicPage = () => {
-  const [search, setSearch]       = useState('');
-  const [courseFilter, setCourse] = useState(null);
+  const [search, setSearch]         = useState('');
+  const [courseFilter, setCourse]   = useState(null);
   const [countryFilter, setCountry] = useState(null);
-  const [selected, setSelected]   = useState(null);
-  const [modalOpen, setModal]     = useState(false);
+  const [selected, setSelected]     = useState(null);
+  const [modalOpen, setModal]       = useState(false);
+  const [lmsTarget, setLmsTarget]   = useState(null);
   const navigate = useNavigate();
 
   const { data: leadsResp, isLoading } = useQuery({
@@ -129,17 +227,10 @@ const AcademicPage = () => {
     queryFn: () => leadsAPI.getAll({ status: 'Enrolled', limit: 2000 }).then(r => r.data),
   });
 
-  // Also fetch all leads to get pipeline context
-  const { data: allLeadsResp } = useQuery({
-    queryKey: ['leads-all-academic'],
-    queryFn: () => leadsAPI.getAll({ limit: 2000 }).then(r => r.data),
-  });
-
-  const students   = leadsResp?.leads || (Array.isArray(leadsResp) ? leadsResp : []);
-  const allLeads   = allLeadsResp?.leads || [];
+  const students = leadsResp?.leads || (Array.isArray(leadsResp) ? leadsResp : []);
 
   // Filter options
-  const courses  = [...new Set(students.map(s => s.course_interested).filter(Boolean))].sort();
+  const courses   = [...new Set(students.map(s => s.course_interested).filter(Boolean))].sort();
   const countries = [...new Set(students.map(s => s.country).filter(Boolean))].sort();
 
   // Filtered list
@@ -167,6 +258,8 @@ const AcademicPage = () => {
   const countryMap = {};
   students.forEach(s => { if (s.country) countryMap[s.country] = (countryMap[s.country] || 0) + 1; });
   const topCountries = Object.entries(countryMap).sort((a, b) => b[1] - a[1]).slice(0, 5);
+
+  const lmsCount = students.filter(s => getLmsData(s)).length;
 
   const openDetail = (s) => { setSelected(s); setModal(true); };
 
@@ -220,6 +313,23 @@ const AcademicPage = () => {
       defaultSortOrder: 'descend',
     },
     {
+      title: 'LMS',
+      key: 'lms',
+      render: (_, s) => {
+        const lms = getLmsData(s);
+        return lms ? (
+          <Tooltip title={`Username: ${lms.username}`}>
+            <Tag color="green" style={{ cursor: 'default' }}>
+              <CheckCircle size={10} style={{ marginRight: 4 }} />
+              Active
+            </Tag>
+          </Tooltip>
+        ) : (
+          <Tag color="default" style={{ color: '#9ca3af' }}>Not set</Tag>
+        );
+      },
+    },
+    {
       title: 'Counselor',
       dataIndex: 'assigned_to',
       key: 'counselor',
@@ -241,6 +351,14 @@ const AcademicPage = () => {
         <div style={{ display: 'flex', gap: 6 }}>
           <Button size="small" icon={<Eye size={13} />} onClick={() => openDetail(s)}>
             File
+          </Button>
+          <Button
+            size="small"
+            icon={<Monitor size={13} />}
+            type={getLmsData(s) ? 'default' : 'primary'}
+            onClick={() => setLmsTarget(s)}
+          >
+            LMS
           </Button>
           <Button size="small" onClick={() => navigate(`/leads/${s.id}`)}>
             Edit
@@ -270,7 +388,7 @@ const AcademicPage = () => {
         <div>
           <div style={{ fontSize: 20, fontWeight: 700 }}>Academic — Enrolled Students</div>
           <div style={{ fontSize: 13, color: 'var(--text-secondary)' }}>
-            Course enrollment, documentation & student management
+            Course enrollment, documentation & LMS management
           </div>
         </div>
       </div>
@@ -278,10 +396,10 @@ const AcademicPage = () => {
       {/* KPIs */}
       <Row gutter={[16, 16]}>
         {[
-          { title: 'Total Enrolled', value: students.length, color: '#7c3aed', icon: GraduationCap },
-          { title: 'Courses',        value: Object.keys(courseMap).length, color: '#2563eb', icon: BookOpen },
+          { title: 'Total Enrolled', value: students.length,                       color: '#7c3aed', icon: GraduationCap },
+          { title: 'Courses',        value: Object.keys(courseMap).length,         color: '#2563eb', icon: BookOpen },
           { title: 'Total Revenue',  value: `₹${(totalRevenue / 100000).toFixed(1)}L`, color: '#059669', icon: TrendingUp },
-          { title: 'Avg Revenue',    value: `₹${Math.round(avgRevenue / 1000)}K`, color: '#d97706', icon: ClipboardList },
+          { title: 'LMS Created',    value: `${lmsCount}/${students.length}`,      color: '#d97706', icon: Monitor },
         ].map(s => (
           <Col key={s.title} xs={24} sm={12} lg={6}>
             <Card style={{ borderRadius: 12, borderTop: `3px solid ${s.color}` }}>
@@ -299,6 +417,21 @@ const AcademicPage = () => {
           </Col>
         ))}
       </Row>
+
+      {/* LMS alert if not all created */}
+      {lmsCount < students.length && students.length > 0 && (
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: 10,
+          padding: '10px 16px', borderRadius: 10,
+          background: '#fffbeb', border: '1px solid #fde68a', fontSize: 13,
+        }}>
+          <Monitor size={16} color="#d97706" />
+          <span style={{ color: '#d97706', fontWeight: 500 }}>
+            {students.length - lmsCount} students don't have LMS credentials yet.
+            Click the LMS button on each student row to create.
+          </span>
+        </div>
+      )}
 
       {/* Course breakdown cards */}
       <Card title="📚 Enrollment by Course" style={{ borderRadius: 12 }}>
@@ -358,6 +491,7 @@ const AcademicPage = () => {
               columns={columns}
               pagination={{ pageSize: 12, showSizeChanger: true }}
               size="middle"
+              scroll={{ x: 900 }}
             />
           </Card>
         </Col>
@@ -399,6 +533,7 @@ const AcademicPage = () => {
       </Row>
 
       <StudentModal lead={selected} open={modalOpen} onClose={() => setModal(false)} />
+      <LmsModal lead={lmsTarget} open={!!lmsTarget} onClose={() => setLmsTarget(null)} />
     </div>
   );
 };

@@ -13,7 +13,14 @@ FEATURES:
 ✅ Automated follow-up scheduling
 """
 
-from fastapi import FastAPI, HTTPException, Depends, Query, BackgroundTasks
+# ── Validate required environment variables before anything else boots ────────
+# Skip in test mode (conftest.py sets ENVIRONMENT=test and injects mocks)
+import os as _os
+if _os.getenv("ENVIRONMENT", "development") not in ("test",):
+    from config_validator import validate_config
+    validate_config(exit_on_critical=True, silent_info=True)
+
+from fastapi import FastAPI, HTTPException, Depends, Query, BackgroundTasks, Request, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
@@ -52,6 +59,8 @@ from auth import (
     create_access_token,
     get_password_hash,
     verify_password,
+    SECRET_KEY,
+    ALGORITHM,
 )
 # Using local SQLite database
 
@@ -270,6 +279,13 @@ async def lifespan(app: FastAPI):
     else:
         logger.info("✅ Local SQLite database initialized")
 
+    # Start WebSocket Pub/Sub subscriber (Redis-backed real-time events)
+    try:
+        from websocket_manager import _ws_manager as _wsm
+        await _wsm.start()
+    except Exception as _ws_err:
+        logger.warning("⚠️ WebSocket manager failed to start: %s", _ws_err)
+
     logger.info("✅ Application ready to accept requests")
 
     # Initialize Google Sheets sync scheduler
@@ -306,6 +322,11 @@ async def lifespan(app: FastAPI):
 
     # ---- Shutdown ----
     logger.info("👋 Application shutdown initiated")
+    try:
+        from websocket_manager import _ws_manager as _wsm
+        await _wsm.stop()
+    except Exception:
+        pass
     if _decay_task and not _decay_task.done():
         _decay_task.cancel()
         try:
@@ -322,6 +343,7 @@ async def lifespan(app: FastAPI):
 # Paths that do NOT require a valid JWT.
 _PUBLIC_PATHS = {
     "/",
+    "/ping",        # keep-alive probe — no auth needed
     "/health",
     "/ready",
     "/metrics",
@@ -332,18 +354,48 @@ _PUBLIC_PATHS = {
     "/openapi.json",
 }
 
-from fastapi import Request
-
 async def _verify_token(request: Request) -> None:
     """
-    Global dependency: Authentication disabled - all routes accessible.
-    Original purpose: validates the Bearer token for every route except
+    Global dependency: validates the Bearer token for every route except
     those listed in _PUBLIC_PATHS.  Raises 401 if the token is missing or
     invalid.  The full user object (with DB lookup) is only fetched by
     routes that explicitly Depend(get_current_user).
     """
-    # Authentication completely disabled - allow all requests
-    return
+    # Skip auth for public paths (login, docs, health)
+    if request.url.path in _PUBLIC_PATHS:
+        return
+
+    # Also skip for paths starting with /docs or /redoc (e.g. /docs/oauth2-redirect)
+    for pub in ("/docs", "/redoc"):
+        if request.url.path.startswith(pub):
+            return
+
+    auth_header = request.headers.get("Authorization", "")
+    if not auth_header.startswith("Bearer "):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Not authenticated. Please provide a valid Bearer token.",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+    token = auth_header.split(" ", 1)[1]
+    try:
+        # decode_access_token raises HTTPException on any failure
+        token_data = decode_access_token(token)
+        if not token_data or not token_data.email:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid token payload.",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+    except HTTPException:
+        raise  # re-raise the 401 from decode_access_token
+    except Exception:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Token is invalid or has expired. Please log in again.",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
 
 
 def _get_counselor_name(request: Request) -> str | None:
@@ -362,8 +414,6 @@ def _get_counselor_name(request: Request) -> str | None:
     return None
 
 
-from fastapi import status
-
 # Initialize FastAPI with the global auth dependency
 app = FastAPI(
     lifespan=lifespan,
@@ -376,6 +426,41 @@ app = FastAPI(
 # Attach rate limiter to the app
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
+# ============================================================================
+# ROUTER REGISTRATION — import all domain routers and include them
+# The global dependency=[Depends(_verify_token)] set on the FastAPI() instance
+# above applies to ALL routes, including those in routers.
+# ============================================================================
+from routers import (
+    system_router,
+    auth_router,
+    leads_router,
+    users_router,
+    hospitals_router,
+    courses_router,
+    analytics_router,
+    ai_router,
+    communications_router,
+    settings_router,
+)
+from routers import websocket_router
+from routers import webhooks_router
+from routers import tenants_router
+
+app.include_router(system_router.router)
+app.include_router(auth_router.router)
+app.include_router(tenants_router.router)
+app.include_router(leads_router.router)
+app.include_router(users_router.router)
+app.include_router(hospitals_router.router)
+app.include_router(courses_router.router)
+app.include_router(analytics_router.router)
+app.include_router(ai_router.router)
+app.include_router(communications_router.router)
+app.include_router(settings_router.router)
+app.include_router(websocket_router.router)
+app.include_router(webhooks_router.router)
 
 # Add custom middleware (order matters - first added is outermost)
 app.add_middleware(ErrorHandlingMiddleware)
@@ -401,7 +486,7 @@ app.add_middleware(
 
 logger.info("🚀 FastAPI application initialized with logging and error handling")
 
-# Database setup - Supports both PostgreSQL (Supabase) and SQLite (local)
+# Database setup — Supabase REST API (primary) + SQLAlchemy for local SQLite fallback
 from supabase_client import supabase_manager
 from supabase_data_layer import supabase_data
 from dotenv import load_dotenv
@@ -409,11 +494,8 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # ============================================================================
-# DATABASE MODELS (Using local SQLite)
+# DATABASE MODELS (SQLAlchemy — used for local SQLite fallback only)
 # ============================================================================
-
-from supabase_client import supabase_manager
-from supabase_data_layer import supabase_data
 
 # Create SQLAlchemy engine and session for local SQLite operations
 DATABASE_URL = supabase_manager.get_database_url()
@@ -1654,7 +1736,8 @@ class LoginRequest(BaseModel):
     password: str
 
 @app.post("/api/auth/login")
-@limiter.limit("10/minute")  # Brute-force protection: max 10 login attempts per minute per IP
+@limiter.limit("10/minute")   # Per-IP: max 10 attempts / minute — brute-force protection
+@limiter.limit("50/hour")     # Per-IP: hard ceiling of 50 attempts / hour
 async def login(request: Request, body: LoginRequest):
     """Login with username (email) and password - validates against Supabase users table"""
     
@@ -4643,9 +4726,19 @@ async def ai_status():
 # HEALTH CHECK
 # ============================================================================
 
+@app.get("/ping")
+async def ping():
+    """
+    Ultra-lightweight keep-alive endpoint — NO database, NO ML calls.
+    Used by external schedulers (cron-job.org, UptimeRobot) to keep the
+    Render free-tier container warm.  Returns in < 1 ms.
+    """
+    return {"pong": True, "ts": datetime.utcnow().isoformat()}
+
+
 @app.get("/health")
 async def health_check():
-    """Health check endpoint with database status"""
+    """Full health check endpoint with database status"""
     
     # Detect database type
     db_type = "supabase" if supabase_manager.client else "sqlite"

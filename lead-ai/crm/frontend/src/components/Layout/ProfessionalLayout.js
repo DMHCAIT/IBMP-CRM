@@ -1,10 +1,10 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Drawer, Tooltip } from 'antd';
 import {
-  LayoutDashboard, Users, Hospital, BookOpen, BarChart3, ChevronLeft,
+  LayoutDashboard, Users, Hospital, BookOpen, BarChart3, ChevronLeft, ChevronDown,
   TrendingUp, GitBranch, UserPlus, Activity, Search, Shield, CalendarClock,
   DollarSign, Settings, Timer, ShieldCheck, TrendingDown, ClipboardList,
   Megaphone, GraduationCap, UserCog, LogOut,
@@ -13,9 +13,9 @@ import SmartNotifications from '../../features/notifications/SmartNotifications'
 import { isFeatureEnabled } from '../../config/featureFlags';
 import { aiSearchAPI, leadsAPI, usersAPI, dashboardAPI, coursesAPI, systemAPI } from '../../api/api';
 import { useAuth } from '../../context/AuthContext';
-import { getNavItemsForRole, getDepartment, DEPT_META } from '../../config/rbac';
+import { getNavItemsForRole, getDepartment, DEPT_META, NAV_GROUPS } from '../../config/rbac';
 
-// ── Icon registry (keeps rbac.js icon-library-agnostic) ──────────────────
+// ── Icon registry ─────────────────────────────────────────────────────────
 const ICON_MAP = {
   LayoutDashboard, Users, Hospital, BookOpen, BarChart3, TrendingUp,
   GitBranch, UserPlus, Activity, Shield, CalendarClock, DollarSign,
@@ -62,10 +62,9 @@ const SearchBar = () => {
           }}
         />
       </div>
-
       <Drawer title="Search Results" placement="right" onClose={() => setDrawer(false)} open={drawerOpen} width={400}>
         {searching ? (
-          <div style={{ textAlign: 'center', padding: 24 }}>Searching...</div>
+          <div style={{ textAlign: 'center', padding: 24 }}>Searching…</div>
         ) : results.length === 0 ? (
           <div style={{ textAlign: 'center', padding: 24, color: 'var(--text-secondary)' }}>
             {query ? 'No results found' : 'Enter a search query'}
@@ -88,6 +87,154 @@ const SearchBar = () => {
     </>
   );
 };
+
+// ── NavItem (single button) ───────────────────────────────────────────────
+const NavItem = ({ item, isActive, collapsed, deptColor, prefetchRoute, navigate, indent = false }) => {
+  const Icon = ICON_MAP[item.icon] || LayoutDashboard;
+  const btn = (
+    <motion.button
+      onClick={() => navigate(item.path)}
+      onMouseEnter={() => prefetchRoute(item.path)}
+      whileHover={{ x: collapsed ? 0 : 2 }}
+      whileTap={{ scale: 0.98 }}
+      style={{
+        width: '100%',
+        display: 'flex', alignItems: 'center', gap: 10,
+        padding: collapsed ? '9px 0' : indent ? '8px 12px 8px 20px' : '9px 12px',
+        marginBottom: 1, borderRadius: 7, border: 'none',
+        background: isActive ? `${deptColor}15` : 'transparent',
+        color: isActive ? deptColor : 'var(--text-secondary)',
+        cursor: 'pointer',
+        fontSize: indent ? 12.5 : 13,
+        fontWeight: isActive ? 600 : 400,
+        justifyContent: collapsed ? 'center' : 'flex-start',
+        borderLeft: isActive ? `3px solid ${deptColor}` : '3px solid transparent',
+        transition: 'all 0.12s',
+        flexShrink: 0,
+      }}
+    >
+      <Icon size={indent ? 15 : 17} style={{ flexShrink: 0 }} />
+      {!collapsed && <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{item.label}</span>}
+    </motion.button>
+  );
+  return collapsed
+    ? <Tooltip key={item.path} title={item.label} placement="right">{btn}</Tooltip>
+    : btn;
+};
+
+// ── NavGroup (collapsible section) ────────────────────────────────────────
+const NavGroup = ({ group, items, collapsed, deptColor, prefetchRoute, navigate, location }) => {
+  const GroupIcon  = ICON_MAP[group.icon] || LayoutDashboard;
+  const hasActive  = items.some(i => location.pathname === i.path || (i.path !== '/dashboard' && location.pathname.startsWith(i.path)));
+
+  // Start open if a child is active; otherwise closed
+  const [open, setOpen] = useState(hasActive);
+
+  // Re-open if navigation changes and a child becomes active
+  useEffect(() => {
+    if (hasActive) setOpen(true);
+  }, [hasActive]);
+
+  if (collapsed) {
+    // In collapsed mode: show group icon with tooltip listing children
+    return (
+      <div style={{ marginBottom: 2 }}>
+        {items.map(item => {
+          const isActive = location.pathname === item.path || (item.path !== '/dashboard' && location.pathname.startsWith(item.path));
+          return (
+            <NavItem
+              key={item.path}
+              item={item}
+              isActive={isActive}
+              collapsed={true}
+              deptColor={deptColor}
+              prefetchRoute={prefetchRoute}
+              navigate={navigate}
+            />
+          );
+        })}
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ marginBottom: 2 }}>
+      {/* Group header */}
+      <button
+        onClick={() => setOpen(o => !o)}
+        style={{
+          width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          padding: '7px 12px', border: 'none', borderRadius: 7,
+          background: hasActive ? `${group.color}0d` : 'transparent',
+          cursor: 'pointer',
+          color: hasActive ? group.color : 'var(--text-tertiary)',
+          fontSize: 11, fontWeight: 600,
+          letterSpacing: '0.05em', textTransform: 'uppercase',
+          transition: 'all 0.12s',
+          marginBottom: 1,
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+          <GroupIcon size={13} />
+          <span>{group.label}</span>
+          {/* Count badge when closed */}
+          {!open && (
+            <span style={{
+              fontSize: 10, fontWeight: 700,
+              background: hasActive ? `${group.color}25` : 'var(--bg-secondary)',
+              color: hasActive ? group.color : 'var(--text-tertiary)',
+              padding: '1px 6px', borderRadius: 10, lineHeight: '16px',
+            }}>
+              {items.length}
+            </span>
+          )}
+        </div>
+        <motion.div animate={{ rotate: open ? 180 : 0 }} transition={{ duration: 0.2 }}>
+          <ChevronDown size={13} />
+        </motion.div>
+      </button>
+
+      {/* Group children */}
+      <AnimatePresence initial={false}>
+        {open && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.18, ease: 'easeInOut' }}
+            style={{ overflow: 'hidden' }}
+          >
+            {items.map(item => {
+              const isActive = location.pathname === item.path || (item.path !== '/dashboard' && location.pathname.startsWith(item.path));
+              return (
+                <NavItem
+                  key={item.path}
+                  item={item}
+                  isActive={isActive}
+                  collapsed={false}
+                  deptColor={deptColor}
+                  prefetchRoute={prefetchRoute}
+                  navigate={navigate}
+                  indent={true}
+                />
+              );
+            })}
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+};
+
+// ── Sidebar divider ───────────────────────────────────────────────────────
+const Divider = ({ collapsed }) => (
+  <div style={{
+    height: 1,
+    background: 'var(--border)',
+    margin: collapsed ? '8px 12px' : '6px 0',
+    opacity: 0.6,
+  }} />
+);
 
 // ── Main Layout ───────────────────────────────────────────────────────────
 const ProfessionalLayout = ({ children }) => {
@@ -127,6 +274,22 @@ const ProfessionalLayout = ({ children }) => {
   // Department-filtered nav items
   const navItems = getNavItemsForRole(role);
 
+  // Split into top-level (no group) vs grouped
+  const topLevel = navItems.filter(i => i.group === null);
+  const grouped  = navItems.filter(i => i.group !== null);
+
+  // Build ordered groups (preserving display order from NAV_GROUPS)
+  const groupOrder = Object.values(NAV_GROUPS).map(g => g.key);
+  const groupMap   = {};
+  grouped.forEach(item => {
+    const gk = item.group.key;
+    if (!groupMap[gk]) groupMap[gk] = { meta: item.group, items: [] };
+    groupMap[gk].items.push(item);
+  });
+  const orderedGroups = groupOrder
+    .filter(gk => groupMap[gk])
+    .map(gk => groupMap[gk]);
+
   const currentLabel = navItems.find(i => i.path === location.pathname)?.label
     || location.pathname.replace('/', '').replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
     || 'Dashboard';
@@ -141,39 +304,40 @@ const ProfessionalLayout = ({ children }) => {
       {/* ── Sidebar ── */}
       <motion.aside
         initial={false}
-        animate={{ width: collapsed ? 64 : 240 }}
+        animate={{ width: collapsed ? 64 : 224 }}
+        transition={{ duration: 0.22, ease: 'easeInOut' }}
         style={{
           background: 'var(--bg-primary)',
           borderRight: '1px solid var(--border)',
           display: 'flex', flexDirection: 'column', overflow: 'hidden', flexShrink: 0,
         }}
       >
-        {/* Logo + company */}
+        {/* ── Logo + company name ── */}
         <div style={{
           height: 64, display: 'flex', alignItems: 'center',
-          padding: collapsed ? '0 16px' : '0 20px',
-          borderBottom: '1px solid var(--border)', gap: 10,
+          padding: collapsed ? '0 15px' : '0 16px',
+          borderBottom: '1px solid var(--border)', gap: 10, flexShrink: 0,
         }}>
           <div style={{
-            width: 34, height: 34, borderRadius: 8,
+            width: 34, height: 34, borderRadius: 8, flexShrink: 0,
             background: 'linear-gradient(135deg, #2563eb, #7c3aed)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: 18, flexShrink: 0,
+            fontSize: 18,
           }}>🏥</div>
           {!collapsed && (
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.05 }}>
               <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)', lineHeight: 1.2 }}>IBMP CRM</div>
               <div style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>Medical Education</div>
             </motion.div>
           )}
         </div>
 
-        {/* Department badge */}
+        {/* ── Department badge ── */}
         {!collapsed && (
-          <div style={{ padding: '10px 20px 4px' }}>
+          <div style={{ padding: '8px 16px 4px', flexShrink: 0 }}>
             <div style={{
               display: 'inline-flex', alignItems: 'center', gap: 6,
-              padding: '4px 10px', borderRadius: 20,
+              padding: '3px 10px', borderRadius: 20,
               background: deptMeta.bg, color: deptMeta.color,
               fontSize: 11, fontWeight: 600,
             }}>
@@ -183,56 +347,67 @@ const ProfessionalLayout = ({ children }) => {
           </div>
         )}
 
-        {/* Nav items */}
-        <nav style={{ flex: 1, padding: '8px 8px', overflowY: 'auto' }}>
-          {navItems.map((item) => {
-            const Icon = ICON_MAP[item.icon] || LayoutDashboard;
-            const isActive = location.pathname === item.path ||
-              (item.path !== '/dashboard' && location.pathname.startsWith(item.path));
-
-            const btn = (
-              <motion.button
+        {/* ── Nav scroll area ── */}
+        <nav style={{
+          flex: 1, padding: '6px 8px',
+          overflowY: 'auto', overflowX: 'hidden',
+          scrollbarWidth: 'thin',
+          scrollbarColor: 'var(--border) transparent',
+        }}>
+          {/* Top-level items (Dashboard) */}
+          {topLevel.map(item => {
+            const isActive = location.pathname === item.path;
+            return (
+              <NavItem
                 key={item.path}
-                onClick={() => navigate(item.path)}
-                onMouseEnter={() => prefetchRoute(item.path)}
-                whileHover={{ x: 2 }}
-                whileTap={{ scale: 0.98 }}
-                style={{
-                  width: '100%', display: 'flex', alignItems: 'center', gap: 10,
-                  padding: collapsed ? '10px 0' : '10px 12px',
-                  marginBottom: 2, borderRadius: 8, border: 'none',
-                  background: isActive ? `${deptMeta.color}18` : 'transparent',
-                  color: isActive ? deptMeta.color : 'var(--text-secondary)',
-                  cursor: 'pointer', fontSize: 13,
-                  fontWeight: isActive ? 600 : 400,
-                  justifyContent: collapsed ? 'center' : 'flex-start',
-                  borderLeft: isActive ? `3px solid ${deptMeta.color}` : '3px solid transparent',
-                  transition: 'all 0.15s',
-                }}
-              >
-                <Icon size={18} />
-                {!collapsed && <span>{item.label}</span>}
-              </motion.button>
+                item={item}
+                isActive={isActive}
+                collapsed={collapsed}
+                deptColor={deptMeta.color}
+                prefetchRoute={prefetchRoute}
+                navigate={navigate}
+              />
             );
-
-            return collapsed
-              ? <Tooltip key={item.path} title={item.label} placement="right">{btn}</Tooltip>
-              : <React.Fragment key={item.path}>{btn}</React.Fragment>;
           })}
+
+          {/* Divider after top-level */}
+          {topLevel.length > 0 && orderedGroups.length > 0 && (
+            <Divider collapsed={collapsed} />
+          )}
+
+          {/* Grouped sections */}
+          {orderedGroups.map((grp, idx) => (
+            <React.Fragment key={grp.meta.key}>
+              <NavGroup
+                group={grp.meta}
+                items={grp.items}
+                collapsed={collapsed}
+                deptColor={deptMeta.color}
+                prefetchRoute={prefetchRoute}
+                navigate={navigate}
+                location={location}
+              />
+              {/* Thin separator between groups (not after last) */}
+              {!collapsed && idx < orderedGroups.length - 1 && (
+                <div style={{ height: 4 }} />
+              )}
+            </React.Fragment>
+          ))}
         </nav>
 
-        {/* Collapse toggle */}
-        <div style={{ padding: 8, borderTop: '1px solid var(--border)' }}>
+        {/* ── Collapse toggle ── */}
+        <div style={{ padding: 8, borderTop: '1px solid var(--border)', flexShrink: 0 }}>
           <button
             onClick={() => setCollapsed(!collapsed)}
             style={{
-              width: '100%', padding: 10, borderRadius: 8, border: 'none',
+              width: '100%', padding: 9, borderRadius: 7, border: 'none',
               background: 'var(--bg-secondary)', color: 'var(--text-secondary)',
               cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+              transition: 'background 0.12s',
             }}
           >
             <motion.div animate={{ rotate: collapsed ? 180 : 0 }} transition={{ duration: 0.2 }}>
-              <ChevronLeft size={18} />
+              <ChevronLeft size={17} />
             </motion.div>
           </button>
         </div>
@@ -245,7 +420,7 @@ const ProfessionalLayout = ({ children }) => {
           height: 64, background: 'var(--bg-primary)',
           borderBottom: '1px solid var(--border)',
           display: 'flex', alignItems: 'center',
-          justifyContent: 'space-between', padding: '0 24px', gap: 16,
+          justifyContent: 'space-between', padding: '0 24px', gap: 16, flexShrink: 0,
         }}>
           <h1 style={{ fontSize: 18, fontWeight: 600, color: 'var(--text-primary)', margin: 0, whiteSpace: 'nowrap' }}>
             {currentLabel}
@@ -271,10 +446,10 @@ const ProfessionalLayout = ({ children }) => {
 
               {/* Avatar */}
               <div style={{
-                width: 38, height: 38, borderRadius: 8,
+                width: 38, height: 38, borderRadius: 8, flexShrink: 0,
                 background: `linear-gradient(135deg, ${deptMeta.color}, #8b5cf6)`,
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
-                color: '#fff', fontWeight: 700, fontSize: 14, flexShrink: 0,
+                color: '#fff', fontWeight: 700, fontSize: 14,
               }}>
                 {initials}
               </div>
@@ -299,9 +474,10 @@ const ProfessionalLayout = ({ children }) => {
         {/* Page */}
         <main style={{ flex: 1, overflow: 'auto', padding: 24 }}>
           <motion.div
-            initial={{ opacity: 0, y: 8 }}
+            key={location.pathname}
+            initial={{ opacity: 0, y: 6 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.2 }}
+            transition={{ duration: 0.18 }}
           >
             {children}
           </motion.div>

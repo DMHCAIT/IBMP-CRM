@@ -441,7 +441,7 @@ const WhatsAppTemplateDrawer = ({ open, onClose, lead }) => {
         open={open}
         onClose={handleClose}
         width={520}
-        bodyStyle={{ padding: '0 0 24px' }}
+        styles={{ body: { padding: '0 0 24px' }}}
         extra={
           <Button
             type="primary"

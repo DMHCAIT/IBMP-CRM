@@ -1,3 +1,9 @@
+/**
+ * @deprecated Use LeadsPageEnhanced instead (imported as such in App.js).
+ * TODO: `git rm` this file.
+ */
+export { default } from './LeadsPageEnhanced';
+
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
@@ -474,7 +480,7 @@ const LeadsPage = () => {
         width={600}
         onClose={() => setDrawerVisible(false)}
         open={drawerVisible}
-        bodyStyle={{ paddingBottom: 80 }}
+        styles={{ body: { paddingBottom: 80 }}}
       >
         <Form
           form={form}

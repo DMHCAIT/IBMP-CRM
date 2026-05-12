@@ -75,3 +75,15 @@ h4 { font-size: var(--text-base); font-weight: 500; line-height: 1.4; }
 
 .ant-layout { min-height: 100vh; }
 
+/* LoginPage responsive — hide left panel on mobile */
+@media (max-width: 768px) {
+  .login-left  { display: none !important; }
+  .login-right { width: 100% !important; }
+}
+
+/* ── Skeleton shimmer animation (used by LoadingContext SkeletonCard/Row) ── */
+@keyframes ibmp-shimmer {
+  0%   { background-position:  200% 0; }
+  100% { background-position: -200% 0; }
+}
+

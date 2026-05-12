@@ -1,10 +1,12 @@
-import React, { lazy, Suspense } from 'react';
+import React, { lazy, Suspense, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { ConfigProvider } from 'antd';
+import { ConfigProvider, App as AntdApp } from 'antd';
 import ProfessionalLayout from './components/Layout/ProfessionalLayout';
 import LoginPage from './pages/LoginPage';
-import { useAuth } from './context/AuthContext';
+import OnboardingPage from './pages/OnboardingPage';
+import { useAuth, wsCallbacks } from './context/AuthContext';
+import { WebSocketProvider, useWebSocket } from './context/WebSocketContext';
 // Lazy-loaded pages — each becomes its own JS chunk (code splitting)
 const RoleBasedDashboard  = lazy(() => import('./pages/RoleBasedDashboard'));
 const LeadsPageEnhanced   = lazy(() => import('./pages/LeadsPageEnhanced'));
@@ -28,9 +30,10 @@ const ScoreDecayPage            = lazy(() => import('./pages/ScoreDecayPage'));
 const LeadUpdateActivityPage    = lazy(() => import('./pages/LeadUpdateActivityPage'));
 const HRPage                    = lazy(() => import('./pages/HRPage'));
 const AcademicPage              = lazy(() => import('./pages/AcademicPage'));
-import { isFeatureEnabled } from './config/featureFlags';
-import ErrorBoundary from './components/ErrorBoundary';
+import { isFeatureEnabled, featureFlags } from './config/featureFlags';
+import ErrorBoundary, { SectionErrorBoundary } from './components/ErrorBoundary';
 import { AuthProvider } from './context/AuthContext';
+import { LoadingProvider } from './context/LoadingContext';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -62,18 +65,48 @@ function PageLoader() {
   );
 }
 
+/**
+ * WsWiring — bridges AuthContext ↔ WebSocketContext without a circular import.
+ * Lives inside both providers so it can access both contexts.
+ */
+function WsWiring() {
+  const { wsConnect, wsDisconnect } = useWebSocket();
+  useEffect(() => {
+    wsCallbacks.connect    = wsConnect;
+    wsCallbacks.disconnect = wsDisconnect;
+    return () => {
+      wsCallbacks.connect    = null;
+      wsCallbacks.disconnect = null;
+    };
+  }, [wsConnect, wsDisconnect]);
+  return null;
+}
+
 function RequireAuth({ children }) {
-  const { isAuthenticated } = useAuth();
-  return isAuthenticated ? children : <Navigate to="/login" replace />;
+  const { isAuthenticated, user } = useAuth();
+  if (!isAuthenticated) return <Navigate to="/login" replace />;
+  // Only redirect to onboarding in SaaS multi-tenant mode AND when user has no tenant yet.
+  // Disabled by default — set REACT_APP_FEATURE_SAAS_ONBOARDING=true to enable.
+  if (
+    featureFlags.SAAS_ONBOARDING &&
+    user &&
+    !user.tenant_id &&
+    window.location.pathname !== '/onboarding'
+  ) {
+    return <Navigate to="/onboarding" replace />;
+  }
+  return children;
 }
 
 function AppRoutes() {
   const { isAuthenticated } = useAuth();
   return (
-    <Router>
+    <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
       <Routes>
         {/* Public login route */}
         <Route path="/login" element={isAuthenticated ? <Navigate to="/dashboard" replace /> : <LoginPage />} />
+        {/* Onboarding — shown to authenticated users who have no tenant yet */}
+        <Route path="/onboarding" element={<OnboardingPage />} />
         {/* All protected routes */}
         <Route
           path="/*"
@@ -120,6 +153,7 @@ function AppRoutes() {
 
 function App() {
   return (
+    // Outer ErrorBoundary: catches crashes before providers initialise
     <ErrorBoundary>
       <QueryClientProvider client={queryClient}>
         <ConfigProvider
@@ -135,10 +169,27 @@ function App() {
             },
           }}
         >
-          {/* AuthProvider wraps everything so any component can call useAuth() */}
-          <AuthProvider>
-            <AppRoutes />
-          </AuthProvider>
+          {/* AntdApp: lets message/modal/notification APIs consume ConfigProvider theme */}
+          <AntdApp>
+          {/* LoadingProvider: global loading overlay + useLoading hook */}
+          <LoadingProvider>
+            {/* Inner ErrorBoundary: catches crashes inside authenticated routes */}
+            <ErrorBoundary
+              title="CRM encountered a problem"
+              key="inner-boundary"
+            >
+              {/* WebSocketProvider: app-wide single WS connection + event bus */}
+              <WebSocketProvider>
+                {/* AuthProvider wraps everything so any component can call useAuth() */}
+                <AuthProvider>
+                  {/* WsWiring bridges auth callbacks → WebSocket context */}
+                  <WsWiring />
+                  <AppRoutes />
+                </AuthProvider>
+              </WebSocketProvider>
+            </ErrorBoundary>
+          </LoadingProvider>
+          </AntdApp>
         </ConfigProvider>
       </QueryClientProvider>
     </ErrorBoundary>

@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { getAuthToken, clearAuthToken } from '../context/AuthContext';
 
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
 
@@ -12,26 +13,24 @@ const api = axios.create({
   },
 });
 
-// Attach the JWT token from localStorage to every outgoing request.
+// ─── Request interceptor ──────────────────────────────────────────────────────
+// Reads the JWT from the in-memory store (NOT localStorage) and attaches it.
 api.interceptors.request.use((config) => {
-  try {
-    const stored = localStorage.getItem('crm_user');
-    const token = stored ? JSON.parse(stored)?.token : null;
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
-  } catch {
-    // localStorage unavailable or JSON malformed — continue without token
+  const token = getAuthToken();
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
   }
   return config;
 });
 
-// Redirect to login on 401 (token expired or invalid)
+// ─── Response interceptor ─────────────────────────────────────────────────────
+// On 401 clear the in-memory token and redirect to login.
 api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      localStorage.removeItem('crm_user');
+      clearAuthToken();
+      try { sessionStorage.removeItem('crm_user_meta'); } catch { /* ignore */ }
       if (!window.location.pathname.includes('/login')) {
         window.location.href = '/login';
       }
@@ -40,14 +39,12 @@ api.interceptors.response.use(
   }
 );
 
-// Auth API
+// ─── Auth API ─────────────────────────────────────────────────────────────────
 export const authAPI = {
   login: (username, password) =>
     api.post('/api/auth/login', { username, password }),
-  logout: () => {
-    // Do nothing - authentication disabled
-    console.log('Logout disabled');
-  },
+  /** Call AuthContext.logout() instead — this just clears server-side session if needed. */
+  logout: () => api.post('/api/auth/logout').catch(() => {}),
 };
 
 // Leads API
@@ -64,9 +61,13 @@ export const leadsAPI = {
   getNotes: (leadId) => api.get(`/api/leads/${leadId}/notes`),
   addNote: (leadId, data) => api.post(`/api/leads/${leadId}/notes`, data),
 
-  // Activities timeline
+  // Activities timeline (legacy)
   getActivities: (leadId, type) =>
     api.get(`/api/leads/${leadId}/activities`, type ? { params: { type } } : {}),
+
+  // Unified timeline — merges notes, activities, chat, communication_history
+  getTimeline: (leadId, params = {}) =>
+    api.get(`/api/leads/${leadId}/timeline`, { params }),
 
   // AI summary
   getAiSummary: (leadId) => api.get(`/api/leads/${leadId}/ai-summary`),
@@ -274,6 +275,21 @@ export const systemAPI = {
   ready:      () => api.get('/ready'),
   aiStatus:   () => api.get('/api/ai/status'),
   mlModelInfo:() => api.get('/api/ml/model-info'),
+};
+
+// Tenants API (multi-tenancy / SaaS onboarding)
+export const tenantsAPI = {
+  create:           (data)          => api.post('/api/tenants', data),
+  getCurrent:       ()              => api.get('/api/tenants/current'),
+  updateCurrent:    (data)          => api.patch('/api/tenants/current', data),
+  getUsage:         ()              => api.get('/api/tenants/current/usage'),
+  getPlan:          ()              => api.get('/api/tenants/current/plan'),
+  checkSubdomain:   (subdomain)     => api.post('/api/tenants/lookup-subdomain', { subdomain }),
+  // Super-admin only
+  list:             (params = {})   => api.get('/api/tenants', { params }),
+  getById:          (id)            => api.get(`/api/tenants/${id}`),
+  update:           (id, data)      => api.patch(`/api/tenants/${id}`, data),
+  deactivate:       (id, hard=false)=> api.delete(`/api/tenants/${id}?hard=${hard}`),
 };
 
 

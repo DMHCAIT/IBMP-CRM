@@ -289,35 +289,65 @@ export function canAccessRoute(userRole, route) {
   return hasAnyPermission(userRole, required);
 }
 
+// ── Nav groups ─────────────────────────────────────────────────────────────
+// Groups are collapsible sections in the sidebar.
+// 'null' group = top-level item (no section header, never collapsible)
+export const NAV_GROUPS = {
+  SALES:    { key: 'sales',    label: 'Sales',    icon: 'UserPlus',     color: '#2563eb' },
+  MARKETING:{ key: 'marketing',label: 'Marketing',icon: 'Megaphone',    color: '#d97706' },
+  ACADEMIC: { key: 'academic', label: 'Academic', icon: 'GraduationCap',color: '#059669' },
+  ACCOUNTS: { key: 'accounts', label: 'Accounts', icon: 'DollarSign',   color: '#dc2626' },
+  HR:       { key: 'hr',       label: 'HR',        icon: 'UserCog',     color: '#db2777' },
+  REPORTS:  { key: 'reports',  label: 'Reports',   icon: 'BarChart3',   color: '#7c3aed' },
+  SYSTEM:   { key: 'system',   label: 'System',    icon: 'Settings',    color: '#374151' },
+};
+
 // ── Nav menu items per role ────────────────────────────────────────────────
-// Each item: { key, label, path, icon (string name — resolved in Layout) }
+// Each item: { key, label, path, icon, group (null = top-level), depts }
 export function getNavItemsForRole(role) {
   const dept = getDepartment(role);
   const perms = getPermissions(role);
-  const has = (p) => perms.includes(p);
+
+  const G = NAV_GROUPS;
+  const D = DEPARTMENTS;
 
   const all = [
-    { key: 'dashboard',            label: 'Dashboard',          path: '/dashboard',            icon: 'LayoutDashboard', depts: 'ALL' },
-    { key: 'followups',            label: 'Follow-ups Today',   path: '/followups',            icon: 'CalendarClock',   depts: [DEPARTMENTS.SALES, DEPARTMENTS.CEO, DEPARTMENTS.ADMIN] },
-    { key: 'leads',                label: 'Leads',              path: '/leads',                icon: 'UserPlus',        depts: [DEPARTMENTS.SALES, DEPARTMENTS.MARKETING, DEPARTMENTS.CEO, DEPARTMENTS.ADMIN, DEPARTMENTS.ACADEMIC, DEPARTMENTS.ACCOUNTS] },
-    { key: 'pipeline',             label: 'Pipeline',           path: '/pipeline',             icon: 'GitBranch',       depts: [DEPARTMENTS.SALES, DEPARTMENTS.CEO, DEPARTMENTS.ADMIN] },
-    { key: 'lead-analysis',        label: 'Lead Analysis',      path: '/lead-analysis',        icon: 'TrendingUp',      depts: [DEPARTMENTS.SALES, DEPARTMENTS.CEO, DEPARTMENTS.ADMIN] },
-    { key: 'campaigns',            label: 'Campaigns',          path: '/campaigns',            icon: 'Megaphone',       depts: [DEPARTMENTS.MARKETING, DEPARTMENTS.CEO, DEPARTMENTS.ADMIN] },
-    { key: 'analytics',            label: 'Analytics',          path: '/analytics',            icon: 'BarChart3',       depts: [DEPARTMENTS.SALES, DEPARTMENTS.MARKETING, DEPARTMENTS.CEO, DEPARTMENTS.ADMIN, DEPARTMENTS.ACCOUNTS] },
-    { key: 'academic',             label: 'Academic',           path: '/academic',             icon: 'GraduationCap',   depts: [DEPARTMENTS.ACADEMIC, DEPARTMENTS.CEO, DEPARTMENTS.ADMIN] },
-    { key: 'hospitals',            label: 'Hospitals',          path: '/hospitals',            icon: 'Hospital',        depts: [DEPARTMENTS.SALES, DEPARTMENTS.ACADEMIC, DEPARTMENTS.CEO, DEPARTMENTS.ADMIN] },
-    { key: 'courses',              label: 'Courses',            path: '/courses',              icon: 'BookOpen',        depts: [DEPARTMENTS.SALES, DEPARTMENTS.ACADEMIC, DEPARTMENTS.MARKETING, DEPARTMENTS.CEO, DEPARTMENTS.ADMIN] },
-    { key: 'payments',             label: 'Payments',           path: '/payments',             icon: 'DollarSign',      depts: [DEPARTMENTS.ACCOUNTS, DEPARTMENTS.CEO, DEPARTMENTS.ADMIN] },
-    { key: 'hr',                   label: 'HR',                 path: '/hr',                   icon: 'UserCog',         depts: [DEPARTMENTS.HR, DEPARTMENTS.CEO, DEPARTMENTS.ADMIN] },
-    { key: 'users',                label: 'Users',              path: '/users',                icon: 'Users',           depts: [DEPARTMENTS.HR, DEPARTMENTS.CEO, DEPARTMENTS.ADMIN, DEPARTMENTS.SALES] },
-    { key: 'user-activity',        label: 'User Activity',      path: '/user-activity',        icon: 'Activity',        depts: [DEPARTMENTS.CEO, DEPARTMENTS.ADMIN] },
-    { key: 'lead-update-activity', label: 'Lead Activity',      path: '/lead-update-activity', icon: 'ClipboardList',   depts: [DEPARTMENTS.CEO, DEPARTMENTS.ADMIN, DEPARTMENTS.SALES] },
-    { key: 'conversion-time',      label: 'Conversion Time',    path: '/conversion-time',      icon: 'Timer',           depts: [DEPARTMENTS.SALES, DEPARTMENTS.CEO, DEPARTMENTS.ADMIN] },
-    { key: 'cohort-analysis',      label: 'Cohort Analysis',    path: '/cohort-analysis',      icon: 'TrendingDown',    depts: [DEPARTMENTS.CEO, DEPARTMENTS.ADMIN] },
-    { key: 'sla',                  label: 'SLA',                path: '/sla',                  icon: 'ShieldCheck',     depts: [DEPARTMENTS.CEO, DEPARTMENTS.ADMIN, DEPARTMENTS.SALES] },
-    { key: 'score-decay',          label: 'Score Decay',        path: '/score-decay',          icon: 'TrendingDown',    depts: [DEPARTMENTS.CEO, DEPARTMENTS.ADMIN] },
-    { key: 'audit-logs',           label: 'Audit Logs',         path: '/audit-logs',           icon: 'Shield',          depts: [DEPARTMENTS.ADMIN, DEPARTMENTS.CEO] },
-    { key: 'settings',             label: 'Settings',           path: '/settings',             icon: 'Settings',        depts: [DEPARTMENTS.ADMIN, DEPARTMENTS.CEO] },
+    // ── Top-level (no group) ──────────────────────────────────────────────
+    { key: 'dashboard',            label: 'Dashboard',        path: '/dashboard',            icon: 'LayoutDashboard', group: null,        depts: 'ALL' },
+
+    // ── Sales ─────────────────────────────────────────────────────────────
+    { key: 'followups',            label: 'Follow-ups Today', path: '/followups',            icon: 'CalendarClock',   group: G.SALES,     depts: [D.SALES, D.CEO, D.ADMIN] },
+    { key: 'leads',                label: 'Leads',            path: '/leads',                icon: 'UserPlus',        group: G.SALES,     depts: [D.SALES, D.MARKETING, D.CEO, D.ADMIN, D.ACADEMIC, D.ACCOUNTS] },
+    { key: 'pipeline',             label: 'Pipeline',         path: '/pipeline',             icon: 'GitBranch',       group: G.SALES,     depts: [D.SALES, D.CEO, D.ADMIN] },
+    { key: 'lead-analysis',        label: 'Lead Analysis',    path: '/lead-analysis',        icon: 'TrendingUp',      group: G.SALES,     depts: [D.SALES, D.CEO, D.ADMIN] },
+
+    // ── Marketing ─────────────────────────────────────────────────────────
+    { key: 'campaigns',            label: 'Campaigns',        path: '/campaigns',            icon: 'Megaphone',       group: G.MARKETING, depts: [D.MARKETING, D.CEO, D.ADMIN] },
+    { key: 'analytics',            label: 'Analytics',        path: '/analytics',            icon: 'BarChart3',       group: G.MARKETING, depts: [D.SALES, D.MARKETING, D.CEO, D.ADMIN, D.ACCOUNTS] },
+
+    // ── Academic ──────────────────────────────────────────────────────────
+    { key: 'academic',             label: 'Academic',         path: '/academic',             icon: 'GraduationCap',   group: G.ACADEMIC,  depts: [D.ACADEMIC, D.CEO, D.ADMIN] },
+    { key: 'hospitals',            label: 'Hospitals',        path: '/hospitals',            icon: 'Hospital',        group: G.ACADEMIC,  depts: [D.SALES, D.ACADEMIC, D.CEO, D.ADMIN] },
+    { key: 'courses',              label: 'Courses',          path: '/courses',              icon: 'BookOpen',        group: G.ACADEMIC,  depts: [D.SALES, D.ACADEMIC, D.MARKETING, D.CEO, D.ADMIN] },
+
+    // ── Accounts ──────────────────────────────────────────────────────────
+    { key: 'payments',             label: 'Payments',         path: '/payments',             icon: 'DollarSign',      group: G.ACCOUNTS,  depts: [D.ACCOUNTS, D.CEO, D.ADMIN] },
+
+    // ── HR ────────────────────────────────────────────────────────────────
+    { key: 'hr',                   label: 'HR',               path: '/hr',                   icon: 'UserCog',         group: G.HR,        depts: [D.HR, D.CEO, D.ADMIN] },
+    { key: 'users',                label: 'Users',            path: '/users',                icon: 'Users',           group: G.HR,        depts: [D.HR, D.CEO, D.ADMIN, D.SALES] },
+    { key: 'user-activity',        label: 'User Activity',    path: '/user-activity',        icon: 'Activity',        group: G.HR,        depts: [D.CEO, D.ADMIN] },
+
+    // ── Reports ───────────────────────────────────────────────────────────
+    { key: 'lead-update-activity', label: 'Lead Activity',    path: '/lead-update-activity', icon: 'ClipboardList',   group: G.REPORTS,   depts: [D.CEO, D.ADMIN, D.SALES] },
+    { key: 'conversion-time',      label: 'Conversion Time',  path: '/conversion-time',      icon: 'Timer',           group: G.REPORTS,   depts: [D.SALES, D.CEO, D.ADMIN] },
+    { key: 'cohort-analysis',      label: 'Cohort Analysis',  path: '/cohort-analysis',      icon: 'TrendingDown',    group: G.REPORTS,   depts: [D.CEO, D.ADMIN] },
+    { key: 'sla',                  label: 'SLA',              path: '/sla',                  icon: 'ShieldCheck',     group: G.REPORTS,   depts: [D.CEO, D.ADMIN, D.SALES] },
+    { key: 'score-decay',          label: 'Score Decay',      path: '/score-decay',          icon: 'TrendingDown',    group: G.REPORTS,   depts: [D.CEO, D.ADMIN] },
+
+    // ── System ────────────────────────────────────────────────────────────
+    { key: 'audit-logs',           label: 'Audit Logs',       path: '/audit-logs',           icon: 'Shield',          group: G.SYSTEM,    depts: [D.ADMIN, D.CEO] },
+    { key: 'settings',             label: 'Settings',         path: '/settings',             icon: 'Settings',        group: G.SYSTEM,    depts: [D.ADMIN, D.CEO] },
   ];
 
   return all.filter(item => {

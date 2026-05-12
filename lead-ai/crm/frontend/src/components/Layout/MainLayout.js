@@ -1,3 +1,11 @@
+/**
+ * @deprecated Use ProfessionalLayout instead.
+ * This file is kept only so any missed import doesn't hard-crash the app.
+ * TODO: `git rm` this file once confirmed no references remain.
+ */
+export { default } from './ProfessionalLayout';
+
+// ── archived original below (do not use) ──────────────────────────────────
 import React, { useState } from 'react';
 import { Layout, Menu } from 'antd';
 import { useNavigate, useLocation } from 'react-router-dom';

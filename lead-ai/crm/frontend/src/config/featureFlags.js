@@ -17,6 +17,10 @@ export const featureFlags = {
   AI_ACTIVITY_SUMMARY: process.env.REACT_APP_FEATURE_AI_SUMMARY !== 'false',
   WEBSOCKET_NOTIFICATIONS: process.env.REACT_APP_FEATURE_WEBSOCKET === 'true',
   PAYMENT_TRACKING: process.env.REACT_APP_FEATURE_PAYMENT_TRACKING !== 'false',
+
+  // SaaS onboarding wizard — disabled by default (single-tenant deployment)
+  // Set REACT_APP_FEATURE_SAAS_ONBOARDING=true to enable for multi-tenant SaaS mode
+  SAAS_ONBOARDING: process.env.REACT_APP_FEATURE_SAAS_ONBOARDING === 'true',
 };
 
 export const isFeatureEnabled = (feature) => {

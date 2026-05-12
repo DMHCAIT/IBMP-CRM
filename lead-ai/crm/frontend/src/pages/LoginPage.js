@@ -40,7 +40,7 @@ const LoginPage = () => {
 
   return (
     <div style={s.page}>
-      <div style={s.left}>
+      <div style={s.left} className="login-left">
         {/* Brand panel */}
         <div style={{ marginBottom: 48 }}>
           <div style={s.brandIcon}>🏥</div>
@@ -69,7 +69,7 @@ const LoginPage = () => {
         </div>
       </div>
 
-      <div style={s.right}>
+      <div style={s.right} className="login-right">
         <div style={s.card}>
           {/* Logo row */}
           <div style={s.logoRow}>
@@ -143,7 +143,6 @@ const s = {
     flex: 1, background: 'linear-gradient(160deg, #1e3a5f 0%, #1e293b 60%, #0f172a 100%)',
     padding: '52px 48px', display: 'flex', flexDirection: 'column', justifyContent: 'center',
     color: '#fff',
-    '@media (max-width: 768px)': { display: 'none' },
   },
   brandIcon: { fontSize: 48, marginBottom: 12 },
   brandTitle: { fontSize: 32, fontWeight: 800, letterSpacing: -0.5 },
@@ -169,7 +168,6 @@ const s = {
   right: {
     width: 480, display: 'flex', alignItems: 'center', justifyContent: 'center',
     background: '#f8fafc', padding: 32,
-    '@media (max-width: 768px)': { width: '100%' },
   },
   card: {
     background: '#fff', borderRadius: 16, padding: '40px 36px',

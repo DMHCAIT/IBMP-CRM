@@ -1,0 +1,11 @@
+node_modules/
+build/
+.env
+.env.*
+!.env.example
+.DS_Store
+*.log
+.git/
+.gitignore
+Dockerfile
+nginx.conf

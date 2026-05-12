@@ -1,6 +1,12 @@
 """
 Authentication and Authorization Module - SUPABASE ONLY
-Provides JWT token generation, password hashing, and user verification
+Provides JWT token generation, password hashing, and user verification.
+
+Security features:
+  - bcrypt password hashing
+  - JWT tokens with `jti` (unique ID) claim for revocation
+  - Token blocklist via Redis (or in-memory fallback) — see token_blocklist.py
+  - Role-based access control helpers
 """
 
 from datetime import datetime, timedelta
@@ -14,6 +20,9 @@ from pydantic import BaseModel
 
 # Import Supabase data layer
 from supabase_data_layer import supabase_data
+
+# Import token blocklist (Redis-backed revocation store)
+from token_blocklist import blocklist, new_jti
 
 # Security configuration — fail fast if the secret is missing or left as the default.
 _raw_secret = os.getenv("JWT_SECRET_KEY", "")
@@ -38,8 +47,11 @@ class Token(BaseModel):
 
 
 class TokenData(BaseModel):
-    email: Optional[str] = None
-    role: Optional[str] = None
+    email:      Optional[str] = None
+    role:       Optional[str] = None
+    tenant_id:  Optional[str] = None
+    department: Optional[str] = None
+    company:    Optional[str] = None
 
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
@@ -59,42 +71,65 @@ def get_password_hash(password: str) -> str:
 
 
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:
-    """Create a JWT access token"""
+    """
+    Create a JWT access token.
+    Automatically adds:
+      - `exp`  expiry timestamp
+      - `iat`  issued-at timestamp
+      - `jti`  unique token ID (required for revocation via blocklist)
+    """
     to_encode = data.copy()
-    
+
     if expires_delta:
         expire = datetime.utcnow() + expires_delta
     else:
         expire = datetime.utcnow() + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
-    
-    to_encode.update({"exp": expire})
-    encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
-    
-    return encoded_jwt
+
+    to_encode.update({
+        "exp": expire,
+        "iat": datetime.utcnow(),
+        "jti": new_jti(),          # unique ID used for revocation
+    })
+    return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
 
 
 def decode_access_token(token: str) -> TokenData:
-    """Decode and verify a JWT token"""
+    """
+    Decode and verify a JWT token.
+    Also checks the token blocklist — raises 401 if the token was revoked.
+    """
+    _credentials_exc = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Could not validate credentials",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        email: str = payload.get("sub")
-        role: str = payload.get("role")
-        
+        email:      str = payload.get("sub")
+        role:       str = payload.get("role")
+        tenant_id:  str = payload.get("tenant_id")
+        department: str = payload.get("department")
+        company:    str = payload.get("company")
+        jti:        str = payload.get("jti", "")
+
         if email is None:
+            raise _credentials_exc
+
+        # ── Blocklist check ────────────────────────────────────────────────
+        if jti and blocklist.is_revoked(jti):
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Could not validate credentials",
+                detail="Token has been revoked — please log in again",
                 headers={"WWW-Authenticate": "Bearer"},
             )
-        
-        return TokenData(email=email, role=role)
-    
+
+        return TokenData(email=email, role=role, tenant_id=tenant_id,
+                         department=department, company=company)
+
+    except HTTPException:
+        raise
     except JWTError:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Could not validate credentials",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
+        raise _credentials_exc
 
 
 def authenticate_user(email: str, password: str):
@@ -114,7 +149,13 @@ def authenticate_user(email: str, password: str):
 
 
 async def get_current_user(token: Optional[str] = Depends(oauth2_scheme)):
-    """Validate JWT token and return the authenticated user from Supabase."""
+    """
+    Validate JWT token and return the authenticated user from Supabase.
+    Performs three security checks:
+      1. JWT signature and expiry
+      2. Token blocklist (per-token revocation — logout)
+      3. User-level revocation (password change invalidates all tokens)
+    """
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Could not validate credentials. Please log in again.",
@@ -124,11 +165,35 @@ async def get_current_user(token: Optional[str] = Depends(oauth2_scheme)):
     if not token:
         raise credentials_exception
 
+    token_tenant_id: Optional[str] = None
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        email: str = payload.get("sub")
+        email:           str = payload.get("sub")
+        jti:             str = payload.get("jti", "")
+        iat:           float = float(payload.get("iat", 0))
+        token_tenant_id: str = payload.get("tenant_id")
+
         if not email:
             raise credentials_exception
+
+        # ── Check 1: per-token revocation (logout) ─────────────────────────
+        if jti and blocklist.is_revoked(jti):
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Token has been revoked — please log in again",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+
+        # ── Check 2: user-level revocation (password change) ──────────────
+        if iat and blocklist.is_revoked_for_user(email, iat):
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Your session was invalidated — please log in again",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+
+    except HTTPException:
+        raise
     except JWTError:
         raise credentials_exception
 
@@ -144,6 +209,12 @@ async def get_current_user(token: Optional[str] = Depends(oauth2_scheme)):
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Account is inactive. Contact your administrator.",
         )
+
+    # Prefer tenant_id from the DB record; fall back to the JWT claim
+    # (DB is authoritative; JWT claim is a cached copy for RLS passthrough)
+    if not user.get("tenant_id") and token_tenant_id:
+        user = dict(user)
+        user["tenant_id"] = token_tenant_id
 
     return user
 

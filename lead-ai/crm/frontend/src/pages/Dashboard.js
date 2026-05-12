@@ -1,3 +1,9 @@
+/**
+ * @deprecated Use RoleBasedDashboard (via App.js routing) instead.
+ * TODO: `git rm` this file.
+ */
+export { default } from './RoleBasedDashboard';
+
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Row, Col, Card, Statistic, Table, Progress, Tag, Spin } from 'antd';
@@ -175,7 +181,7 @@ const Dashboard = () => {
       {/* Charts */}
       <Row gutter={[16, 16]} style={{ marginTop: '24px' }}>
         <Col xs={24} lg={12}>
-          <Card title="Lead Segments Distribution" bordered={false}>
+          <Card title="Lead Segments Distribution" variant="borderless">
             <ResponsiveContainer width="100%" height={300}>
               <PieChart>
                 <Pie
@@ -199,7 +205,7 @@ const Dashboard = () => {
         </Col>
 
         <Col xs={24} lg={12}>
-          <Card title="Conversion Funnel" bordered={false}>
+          <Card title="Conversion Funnel" variant="borderless">
             <ResponsiveContainer width="100%" height={300}>
               <BarChart data={conversionFunnel?.stages || []}>
                 <CartesianGrid strokeDasharray="3 3" />
@@ -217,7 +223,7 @@ const Dashboard = () => {
       {/* Revenue by Country */}
       <Row gutter={[16, 16]} style={{ marginTop: '24px' }}>
         <Col xs={24} lg={12}>
-          <Card title="Revenue by Country" bordered={false}>
+          <Card title="Revenue by Country" variant="borderless">
             <ResponsiveContainer width="100%" height={300}>
               <BarChart data={revenueByCountry || []}>
                 <CartesianGrid strokeDasharray="3 3" />
@@ -233,7 +239,7 @@ const Dashboard = () => {
         </Col>
 
         <Col xs={24} lg={12}>
-          <Card title="Recent Leads" bordered={false}>
+          <Card title="Recent Leads" variant="borderless">
             <Table
               dataSource={recentLeads || []}
               columns={recentLeadsColumns}

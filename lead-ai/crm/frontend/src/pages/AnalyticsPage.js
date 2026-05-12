@@ -259,7 +259,7 @@ const AnalyticsPage = () => {
               <Col xs={24} sm={12} lg={6} key={i}>
                 <Card
                   style={{ borderRadius: 12, borderLeft: `4px solid ${kpi.color}`, height: '100%' }}
-                  bodyStyle={{ padding: '14px 16px' }}
+                  styles={{ body: { padding: '14px 16px' }}}
                 >
                   <div style={{ fontSize: 11, color: 'var(--text-tertiary)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 4 }}>
                     {kpi.label}
@@ -279,7 +279,7 @@ const AnalyticsPage = () => {
         <Col xs={24} lg={12}>
           <Card
             title={<span style={{ fontWeight: 700 }}>Conversion Rate by Source</span>}
-            bordered={false}
+            variant="borderless"
             style={{ borderRadius: 12 }}
             loading={srcLoading}
           >
@@ -303,7 +303,7 @@ const AnalyticsPage = () => {
         <Col xs={24} lg={12}>
           <Card
             title={<span style={{ fontWeight: 700 }}>Revenue by Source</span>}
-            bordered={false}
+            variant="borderless"
             style={{ borderRadius: 12 }}
             loading={srcLoading}
           >
@@ -329,7 +329,7 @@ const AnalyticsPage = () => {
         <Col xs={24} lg={14}>
           <Card
             title={<span style={{ fontWeight: 700 }}>Volume vs Enrolled — by Source</span>}
-            bordered={false}
+            variant="borderless"
             style={{ borderRadius: 12 }}
             loading={srcLoading}
           >
@@ -359,7 +359,7 @@ const AnalyticsPage = () => {
         <Col xs={24} lg={10}>
           <Card
             title={<span style={{ fontWeight: 700 }}>Multi-Dimension Radar (Top 5 Sources)</span>}
-            bordered={false}
+            variant="borderless"
             style={{ borderRadius: 12 }}
             loading={srcLoading}
           >
@@ -389,7 +389,7 @@ const AnalyticsPage = () => {
       {/* Full attribution table */}
       <Card
         title={<span style={{ fontWeight: 700 }}>Source Attribution — Full Breakdown</span>}
-        bordered={false}
+        variant="borderless"
         style={{ borderRadius: 12, marginBottom: 32 }}
         loading={srcLoading}
       >
@@ -414,7 +414,7 @@ const AnalyticsPage = () => {
           </div>
           <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
             <Col xs={24} lg={14}>
-              <Card title="Campaign Conversion Rate" bordered={false} style={{ borderRadius: 12 }} loading={srcLoading}>
+              <Card title="Campaign Conversion Rate" variant="borderless" style={{ borderRadius: 12 }} loading={srcLoading}>
                 <ResponsiveContainer width="100%" height={260}>
                   <BarChart data={campaigns.slice(0, 10).map(c => ({ name: c.label, 'Conv %': c.conversion_rate, Leads: c.total_leads }))}>
                     <CartesianGrid strokeDasharray="3 3" />
@@ -430,7 +430,7 @@ const AnalyticsPage = () => {
               </Card>
             </Col>
             <Col xs={24} lg={10}>
-              <Card title="Campaign Revenue" bordered={false} style={{ borderRadius: 12 }} loading={srcLoading}>
+              <Card title="Campaign Revenue" variant="borderless" style={{ borderRadius: 12 }} loading={srcLoading}>
                 <ResponsiveContainer width="100%" height={260}>
                   <BarChart data={campaigns.slice(0, 8).map(c => ({ name: c.label, Revenue: c.total_revenue }))}>
                     <CartesianGrid strokeDasharray="3 3" />
@@ -445,7 +445,7 @@ const AnalyticsPage = () => {
               </Card>
             </Col>
           </Row>
-          <Card title="Campaign Attribution — Full Breakdown" bordered={false} style={{ borderRadius: 12, marginBottom: 32 }} loading={srcLoading}>
+          <Card title="Campaign Attribution — Full Breakdown" variant="borderless" style={{ borderRadius: 12, marginBottom: 32 }} loading={srcLoading}>
             <Table
               dataSource={campaigns.map((c, i) => ({ ...c, key: c.label, _rank: i + 1 }))}
               columns={[
@@ -475,7 +475,7 @@ const AnalyticsPage = () => {
 
       <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
         <Col xs={24} lg={12}>
-          <Card title="Revenue by Country" bordered={false} style={{ borderRadius: 12 }}>
+          <Card title="Revenue by Country" variant="borderless" style={{ borderRadius: 12 }}>
             <ResponsiveContainer width="100%" height={300}>
               <BarChart data={revenueByCountry}>
                 <CartesianGrid strokeDasharray="3 3" />
@@ -491,7 +491,7 @@ const AnalyticsPage = () => {
         </Col>
 
         <Col xs={24} lg={12}>
-          <Card title="Conversion Funnel" bordered={false} style={{ borderRadius: 12 }}>
+          <Card title="Conversion Funnel" variant="borderless" style={{ borderRadius: 12 }}>
             <ResponsiveContainer width="100%" height={300}>
               <BarChart data={conversionFunnel?.stages || []} layout="vertical">
                 <CartesianGrid strokeDasharray="3 3" />
@@ -508,7 +508,7 @@ const AnalyticsPage = () => {
 
       <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
         <Col xs={24} lg={12}>
-          <Card title="Lead Volume by Source" bordered={false} style={{ borderRadius: 12 }}>
+          <Card title="Lead Volume by Source" variant="borderless" style={{ borderRadius: 12 }}>
             <ResponsiveContainer width="100%" height={300}>
               <PieChart>
                 <Pie
@@ -531,7 +531,7 @@ const AnalyticsPage = () => {
         </Col>
 
         <Col xs={24} lg={12}>
-          <Card title="Course Interest Distribution" bordered={false} style={{ borderRadius: 12 }}>
+          <Card title="Course Interest Distribution" variant="borderless" style={{ borderRadius: 12 }}>
             <ResponsiveContainer width="100%" height={300}>
               <BarChart data={courseChartData.slice(0, 5)}>
                 <CartesianGrid strokeDasharray="3 3" />
@@ -547,7 +547,7 @@ const AnalyticsPage = () => {
 
       <Row gutter={[16, 16]}>
         <Col span={24}>
-          <Card title="Counselor Performance" bordered={false} style={{ borderRadius: 12 }}>
+          <Card title="Counselor Performance" variant="borderless" style={{ borderRadius: 12 }}>
             <Table
               dataSource={counselors}
               columns={counselorColumns}
