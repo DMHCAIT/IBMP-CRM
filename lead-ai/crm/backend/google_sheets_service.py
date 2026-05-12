@@ -6,6 +6,7 @@ import os
 from typing import List, Dict, Optional, Any
 from datetime import datetime
 import json
+import re
 
 try:
     from google.oauth2 import service_account
@@ -19,6 +20,11 @@ from logger_config import logger
 
 class GoogleSheetsService:
     """Service for reading and updating Google Sheets"""
+
+    @staticmethod
+    def _normalize_header(header: str) -> str:
+        """Normalize sheet header for tolerant field mapping."""
+        return re.sub(r'[^a-z0-9]+', '_', (header or '').strip().lower()).strip('_')
     
     def __init__(self):
         self.credentials = None
@@ -39,6 +45,9 @@ class GoogleSheetsService:
             'form_name': 'form_name',
             'platform': 'platform',
             'your_highest_qualification:': 'qualification',
+            'your_highest_qualification': 'qualification',
+            'in_which_course_are_you_interested?': 'course_interested',
+            'in_which_course_are_you_interested': 'course_interested',
             'lead_status': 'sheet_lead_status',
             'ad_id': 'ad_id',
             'adset_id': 'adset_id',
@@ -46,6 +55,11 @@ class GoogleSheetsService:
             'campaign_id': 'campaign_id',
             'form_id': 'form_id',
             'is_organic': 'is_organic',
+        }
+
+        # Normalized fallback mapping (handles casing, spaces, punctuation)
+        self.normalized_column_mapping = {
+            self._normalize_header(k): v for k, v in self.column_mapping.items()
         }
         
         self._initialize()
@@ -163,7 +177,12 @@ class GoogleSheetsService:
                             value = row[col_idx] if col_idx < len(row) else ''
                             
                             # Map to CRM field
-                            crm_field = self.column_mapping.get(header, header)
+                            crm_field = self.column_mapping.get(header)
+                            if not crm_field:
+                                crm_field = self.normalized_column_mapping.get(
+                                    self._normalize_header(header),
+                                    header,
+                                )
                             lead[crm_field] = value
                         
                         all_leads.append(lead)

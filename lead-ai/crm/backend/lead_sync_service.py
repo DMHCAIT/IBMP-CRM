@@ -92,14 +92,15 @@ class LeadSyncService:
         
         # Get sheet name (course category)
         sheet_name = sheet_lead.get('_sheet_name', '')
-        course_category = sheet_name if sheet_name else 'Not Specified'
+        course_from_field = (sheet_lead.get('course_interested') or '').strip()
+        course_category = course_from_field or (sheet_name if sheet_name else 'Not Specified')
         
         # Map to CRM fields
         crm_lead = {
             'lead_id': lead_id,
             'full_name': sheet_lead.get('full_name', '').strip(),
             'email': self.normalize_email(sheet_lead.get('email', '')),
-            'phone': self.normalize_phone(sheet_lead.get('phone_number', '')),
+            'phone': self.normalize_phone(sheet_lead.get('phone', '') or sheet_lead.get('phone_number', '')),
             'country': sheet_lead.get('country', '').strip() or 'India',
             'source': f"Meta - {sheet_lead.get('platform', 'Facebook')}",
             'course_interested': course_category,  # Use sheet name as course category
@@ -148,7 +149,7 @@ class LeadSyncService:
             return False, 'Missing full name'
         
         email = sheet_lead.get('email', '').strip()
-        phone = sheet_lead.get('phone_number', '').strip()
+        phone = (sheet_lead.get('phone') or sheet_lead.get('phone_number') or '').strip()
         
         if not email and not phone:
             return False, 'Missing both email and phone'

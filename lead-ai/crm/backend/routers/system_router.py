@@ -279,6 +279,9 @@ async def fetch_leads_from_sheet():
             "platform":                    "campaign_medium",
             "phone_number":                "phone",
             "your_highest_qualification:": "qualification",
+            "your_highest_qualification":  "qualification",
+            "in_which_course_are_you_interested?": "course_interested",
+            "in_which_course_are_you_interested":  "course_interested",
             "lead_status":                 "status",
             "lead_owner":                  "assigned_to",
         }

@@ -77,6 +77,7 @@ SHEET_TO_CRM: Dict[str, str] = {
     # Course
     "course_interested":            "course_interested",
     "course":                       "course_interested",
+    "in_which_course_are_you_interested": "course_interested",  # Meta sheet column (normalised)
 
     # Assignment & follow-up
     "assigned_to":                  "assigned_to",

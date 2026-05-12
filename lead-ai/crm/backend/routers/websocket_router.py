@@ -111,7 +111,7 @@ async def websocket_endpoint(
     # In multi-tenant mode the JWT should carry a tenant_id claim.
     # We fall back gracefully for single-tenant / legacy JWTs.
     jwt_tenant = payload.get("tenant_id", "")
-    if jwt_tenant and jwt_tenant != tenant_id:
+    if jwt_tenant and tenant_id not in (jwt_tenant, "default"):
         await websocket.send_text(json.dumps({
             "type":    "error",
             "code":    4003,
@@ -121,21 +121,25 @@ async def websocket_endpoint(
         await websocket.close(code=4003, reason="Tenant mismatch")
         return
 
+    # If client uses /ws/default but token carries tenant_id, bind to JWT tenant.
+    # This keeps compatibility with older frontends while preserving tenant scoping.
+    effective_tenant = jwt_tenant if (tenant_id == "default" and jwt_tenant) else tenant_id
+
     user_email = payload.get("sub", "unknown")
     user_role  = payload.get("role", "")
 
     # ── Step 4: Register ──────────────────────────────────────────────────────
-    await register(tenant_id, websocket)
+    await register(effective_tenant, websocket)
 
     logger.info(
         "WS accepted  user=%s  role=%s  tenant=%s  connections=%d",
-        user_email, user_role, tenant_id, connection_count(tenant_id),
+        user_email, user_role, effective_tenant, connection_count(effective_tenant),
     )
 
     # ── Step 5: Send "connected" confirmation ─────────────────────────────────
     await websocket.send_text(json.dumps({
         "type":      "connected",
-        "tenant_id": tenant_id,
+        "tenant_id": effective_tenant,
         "user":      user_email,
         "ts":        _now_iso(),
     }))
@@ -165,8 +169,8 @@ async def websocket_endpoint(
     except Exception as exc:
         logger.warning("WS error  user=%s  tenant=%s  — %s", user_email, tenant_id, exc)
     finally:
-        await unregister(tenant_id, websocket)
+        await unregister(effective_tenant, websocket)
         logger.info(
             "WS disconnected  user=%s  tenant=%s  remaining=%d",
-            user_email, tenant_id, connection_count(tenant_id),
+            user_email, effective_tenant, connection_count(effective_tenant),
         )
