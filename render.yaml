@@ -4,7 +4,7 @@ services:
     runtime: python
     python: "3.12"
     rootDir: lead-ai/crm/backend
-    buildCommand: pip install --upgrade pip && pip install -r requirements.txt
+    buildCommand: pip install --upgrade pip && pip install -r requirements.txt && pip install catboost==1.2.10 || echo "catboost install skipped — ML scoring will use rule-based fallback"
     startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
     envVars:
       - key: PYTHON_VERSION
