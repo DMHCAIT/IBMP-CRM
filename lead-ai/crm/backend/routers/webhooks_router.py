@@ -186,7 +186,6 @@ async def sync_all_from_sheet(
     from supabase_data_layer import supabase_data
     import uuid as _uuid
 
-    default_tenant_id = os.getenv("DEFAULT_TENANT_ID", "00000000-0000-0000-0000-000000000001")
 
     created  = 0
     updated  = 0
@@ -200,7 +199,7 @@ async def sync_all_from_sheet(
 
         # Ensure tenant_id is present for multi-tenant schemas.
         # Safe no-op if column doesn't exist or DB defaults already handle it.
-        lead.setdefault("tenant_id", default_tenant_id)
+        # Removed tenant_id assignment as per new schema requirements
 
         try:
             if lead_id:

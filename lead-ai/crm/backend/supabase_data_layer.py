@@ -5,6 +5,7 @@ All database operations go through Supabase cloud
 
 from typing import List, Optional, Dict, Any
 from datetime import datetime
+import os
 import re
 from supabase_client import supabase_manager
 from logger_config import logger
@@ -59,6 +60,35 @@ class SupabaseDataLayer:
     
     def __init__(self):
         self.client = supabase_manager.get_client()
+        self._leads_supports_tenant_id: Optional[bool] = None
+
+    def _leads_table_supports_tenant_id(self) -> bool:
+        """Detect whether the leads table has a tenant_id column."""
+        if self._leads_supports_tenant_id is not None:
+            return self._leads_supports_tenant_id
+
+        if not self.client:
+            self._leads_supports_tenant_id = False
+            return False
+
+        try:
+            # Harmless schema probe: will fail if the column does not exist.
+            self.client.table('leads').select('tenant_id').limit(1).execute()
+            self._leads_supports_tenant_id = True
+        except Exception:
+            self._leads_supports_tenant_id = False
+
+        return self._leads_supports_tenant_id
+
+    def _apply_tenant_id_if_supported(self, data: Dict[str, Any]) -> Dict[str, Any]:
+        """Add tenant_id only when the table schema supports it."""
+        if not self._leads_table_supports_tenant_id():
+            data.pop('tenant_id', None)
+            return data
+
+        # Default tenant matches the one seeded in the SQL migration.
+        data.setdefault('tenant_id', os.getenv('DEFAULT_TENANT_ID', '00000000-0000-0000-0000-000000000001'))
+        return data
     
     def get_leads(
         self,
@@ -271,6 +301,7 @@ class SupabaseDataLayer:
                 iso = value.isoformat()
                 data[key] = iso if iso.endswith('Z') or '+' in iso else iso + 'Z'
         cleaned_data = {k: v for k, v in data.items() if v is not None}
+        cleaned_data = self._apply_tenant_id_if_supported(cleaned_data)
         
         NEW_COLUMNS = {
             'company', 'qualification', 'utm_source', 'utm_medium', 'utm_campaign',
@@ -318,6 +349,7 @@ class SupabaseDataLayer:
                     iso = value.isoformat()
                     data[key] = iso if iso.endswith('Z') or '+' in iso else iso + 'Z'
             cleaned_data = {k: v for k, v in data.items() if v is not None}
+            cleaned_data = self._apply_tenant_id_if_supported(cleaned_data)
             try:
                 response = self.client.table('leads').insert(cleaned_data).execute()
                 return response.data[0] if response.data else None
@@ -326,6 +358,9 @@ class SupabaseDataLayer:
                 # Postgres only reports one missing column at a time, so checking
                 # the error string misses subsequent missing columns.
                 logger.warning(f"Lead insert failed ({e}) — retrying without optional columns")
+                # Remove tenant_id as a last-resort fallback when the schema does
+                # not match the expected multi-tenant migration state.
+                cleaned_data.pop('tenant_id', None)
                 for col in self._OPTIONAL_COLUMNS:
                     cleaned_data.pop(col, None)
                 response = self.client.table('leads').insert(cleaned_data).execute()
