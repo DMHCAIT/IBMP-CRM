@@ -196,9 +196,12 @@ async def sync_all_from_sheet(
                 lead.setdefault("source", "Google Sheet")
 
                 new_lead = supabase_data.create_lead(lead)
-                new_id   = new_lead.get("lead_id", lead["lead_id"]) if new_lead else lead["lead_id"]
-                created += 1
-                results.append({"lead_id": new_id, "action": "created"})
+                if new_lead:
+                    new_id = new_lead.get("lead_id", lead["lead_id"])
+                    created += 1
+                    results.append({"lead_id": new_id, "action": "created"})
+                else:
+                    results.append({"lead_id": lead["lead_id"], "action": "error", "detail": "create_lead returned None"})
         except Exception as exc:
             logger.warning(f"sync-all-from-sheet lead error: {exc}")
             results.append({"lead_id": lead_id or "", "action": "error", "detail": str(exc)})

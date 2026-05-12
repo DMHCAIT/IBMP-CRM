@@ -308,7 +308,7 @@ class SupabaseDataLayer:
     }
 
     def create_lead(self, data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
-        """Create new lead — retries without optional columns if schema is missing them."""
+        """Create new lead — retries without ALL optional columns if any schema error occurs."""
         try:
             now = datetime.utcnow().isoformat() + 'Z'
             data['created_at'] = now
@@ -322,16 +322,14 @@ class SupabaseDataLayer:
                 response = self.client.table('leads').insert(cleaned_data).execute()
                 return response.data[0] if response.data else None
             except Exception as e:
-                # Strip any optional columns the schema doesn't have yet and retry once
-                err_str = str(e)
-                missing = [c for c in self._OPTIONAL_COLUMNS if c in err_str]
-                if missing:
-                    for col in missing:
-                        cleaned_data.pop(col, None)
-                        logger.warning(f"Column '{col}' missing in Supabase leads table — skipping")
-                    response = self.client.table('leads').insert(cleaned_data).execute()
-                    return response.data[0] if response.data else None
-                raise
+                # On ANY error, strip ALL optional columns and retry once.
+                # Postgres only reports one missing column at a time, so checking
+                # the error string misses subsequent missing columns.
+                logger.warning(f"Lead insert failed ({e}) — retrying without optional columns")
+                for col in self._OPTIONAL_COLUMNS:
+                    cleaned_data.pop(col, None)
+                response = self.client.table('leads').insert(cleaned_data).execute()
+                return response.data[0] if response.data else None
         except Exception as e:
             logger.error(f"Error creating lead in Supabase: {e}", exc_info=True)
             return None
