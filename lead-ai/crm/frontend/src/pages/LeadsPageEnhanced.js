@@ -145,6 +145,147 @@ const parseSpreadsheet = (data, isBinary) => {
 
 const REQUIRED_COLS = ['full_name', 'phone'];
 const STATUS_OPTIONS = ['Fresh', 'Follow Up', 'Warm', 'Hot', 'Not Interested', 'Not Answering', 'Enrolled', 'Junk'];
+const NOTE_CALL_STAGE_OPTIONS = ['2 Call', '3 Call', '4 Call'];
+
+const LEAD_NOTE_PLAYBOOK = {
+  'Not Connected (No answer / Switched off / Not Reachable / Busy)': {
+    'Need second call': {
+      '2 Call': 'Ask me to call evening',
+      '3 Call': 'Busy in OPD, call later',
+      '4 Call': 'No response after multiple follow-ups',
+    },
+    'Number Busy': {
+      '2 Call': 'Call tomorrow',
+      '3 Call': 'In surgery / duty',
+      '4 Call': 'Mark as unresponsive',
+    },
+    'Switched Off': {
+      '2 Call': 'Try later',
+      '3 Call': 'Phone still switched off',
+      '4 Call': 'Dead lead',
+    },
+    'Not Reachable': {
+      '2 Call': 'Network issue',
+      '3 Call': 'WhatsApp sent, no reply',
+      '4 Call': 'Invalid number',
+    },
+  },
+  'Call Back Requested': {
+    'Time option': {
+      '2 Call': 'Ask me to call tomorrow',
+      '3 Call': 'Call after duty hours',
+      '4 Call': 'Final callback attempted',
+    },
+    'Busy Schedule': {
+      '2 Call': 'Busy with patients',
+      '3 Call': 'Call on weekend',
+      '4 Call': 'No further response',
+    },
+    'Parent Requested Call': {
+      '2 Call': 'Discuss with family first',
+      '3 Call': 'Family discussion pending',
+      '4 Call': 'Final decision awaited',
+    },
+  },
+  Interested: {
+    'Need Details': {
+      '2 Call': 'Spoke to Doctor, details sent, need follow up',
+      '3 Call': 'Reviewed brochure, interested',
+      '4 Call': 'Ready for admission discussion',
+    },
+    'Fee Discussion Pending': {
+      '2 Call': 'Fee is high, will think and get back',
+      '3 Call': 'Need EMI / discount',
+      '4 Call': 'Payment discussion started',
+    },
+    'Demo Requested': {
+      '2 Call': 'Negotiation in progress',
+      '3 Call': 'Demo attended, interested',
+      '4 Call': 'Wants admission process',
+    },
+    'Comparing Price': {
+      '2 Call': 'Comparing with competitors',
+      '3 Call': 'Asked about placement & USP',
+      '4 Call': 'Final comparison stage',
+    },
+    'Family Approval Pending': {
+      '2 Call': 'Will discuss with family and get back',
+      '3 Call': 'Family interested but checking fees',
+      '4 Call': 'Family approved/rejected',
+    },
+    'Will Enroll Soon': {
+      '2 Call': 'Will enroll soon',
+      '3 Call': 'Asked for payment link',
+      '4 Call': 'Admission confirmed',
+    },
+  },
+  'Future Prospect': {
+    'Not Decided': {
+      '2 Call': 'Not yet decided',
+      '3 Call': 'Need more time',
+      '4 Call': 'Shifted to nurturing',
+    },
+    'After Exams': {
+      '2 Call': 'Will plan next year',
+      '3 Call': 'Busy in PG preparation',
+      '4 Call': 'Reconnect after exams',
+    },
+    'Just Inquiry': {
+      '2 Call': 'Preparing for PG NEET',
+      '3 Call': 'No immediate plan',
+      '4 Call': 'Cold lead',
+    },
+    'Financial Issue': {
+      '2 Call': 'Busy in exams, will plan later',
+      '3 Call': 'Waiting for salary/funds',
+      '4 Call': 'Budget not possible',
+    },
+    'Discuss with Family': {
+      '2 Call': 'Interested, will enroll shortly',
+      '3 Call': 'Family discussion ongoing',
+      '4 Call': 'Waiting for final update',
+    },
+    'After Relocation': {
+      '2 Call': 'Looking for different course',
+      '3 Call': 'Relocating currently',
+      '4 Call': 'Reconnect later',
+    },
+    'After Job Switch': {
+      '2 Call': 'Not interested currently',
+      '3 Call': 'Will reconnect after job change',
+      '4 Call': 'No update received',
+    },
+  },
+  'Not Interested': {
+    'Not Relevant / Course Not Suitable': {
+      '2 Call': 'Do not disturb',
+      '3 Call': 'Course mismatch confirmed',
+      '4 Call': 'Closed lost lead',
+    },
+    'Wrong Expectation from Course': {
+      '2 Call': 'Looking for only clinical training',
+      '3 Call': 'Wants government certification only',
+      '4 Call': 'Not matching expectations',
+    },
+    'Other Academy': {
+      '2 Call': 'Looking for only online course',
+      '3 Call': 'Joined competitor institute',
+      '4 Call': 'Lost to competitor',
+    },
+    'Price Issue': {
+      '2 Call': 'Waiting for funds',
+      '3 Call': 'Budget issue unresolved',
+      '4 Call': 'Permanently lost',
+    },
+  },
+  Spam: {
+    'Other Field / No Health Care / Invalid Number': {
+      '2 Call': 'Dropped the plan',
+      '3 Call': 'Fake inquiry',
+      '4 Call': 'Closed permanently',
+    },
+  },
+};
 
 // Auto-retry countdown shown when the server times out (cold-start)
 const AutoRetryCountdown = ({ onRetry, seconds = 15 }) => {
@@ -246,6 +387,9 @@ const LeadsPageEnhanced = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [form] = Form.useForm();
   const [bulkForm] = Form.useForm();
+  const noteMainCategory = Form.useWatch('note_main_category', form);
+  const noteSubStatus = Form.useWatch('note_sub_status', form);
+  const noteCallStage = Form.useWatch('note_call_stage', form);
   const fileInputRef = useRef(null);
 
   // Duplicate detection
@@ -267,6 +411,28 @@ const LeadsPageEnhanced = () => {
     setEditingCell({});
     setEditingValue(null);
   };
+
+  const noteMainCategoryOptions = useMemo(() => Object.keys(LEAD_NOTE_PLAYBOOK), []);
+  const noteSubStatusOptions = useMemo(
+    () => (noteMainCategory ? Object.keys(LEAD_NOTE_PLAYBOOK[noteMainCategory] || {}) : []),
+    [noteMainCategory]
+  );
+  const selectedTemplateText = useMemo(() => {
+    if (!noteMainCategory || !noteSubStatus || !noteCallStage) return '';
+    return LEAD_NOTE_PLAYBOOK?.[noteMainCategory]?.[noteSubStatus]?.[noteCallStage] || '';
+  }, [noteMainCategory, noteSubStatus, noteCallStage]);
+
+  const insertSelectedTemplateIntoNotes = useCallback(() => {
+    if (!noteMainCategory || !noteSubStatus || !noteCallStage || !selectedTemplateText) {
+      message.warning('Select category, status and call stage first');
+      return;
+    }
+    const line = `[${noteMainCategory} | ${noteSubStatus} | ${noteCallStage}] ${selectedTemplateText}`;
+    const currentNotes = form.getFieldValue('notes') || '';
+    const nextNotes = currentNotes ? `${currentNotes}\n${line}` : line;
+    form.setFieldValue('notes', nextNotes);
+    message.success('Template added to notes');
+  }, [form, noteMainCategory, noteSubStatus, noteCallStage, selectedTemplateText]);
 
   // Debounce search text (500ms delay)
   React.useEffect(() => {
@@ -1800,6 +1966,54 @@ const LeadsPageEnhanced = () => {
           <Form.Item name="notes" label="Notes">
             <Input.TextArea rows={3} placeholder="Initial notes..." showCount maxLength={500} />
           </Form.Item>
+          <Card size="small" style={{ marginBottom: 12, background: '#fafafa' }}>
+            <Text strong>Follow-up Notes Template</Text>
+            <Row gutter={8} style={{ marginTop: 8 }}>
+              <Col span={24}>
+                <Form.Item name="note_main_category" label="Main Category" style={{ marginBottom: 8 }}>
+                  <Select
+                    placeholder="Select main category"
+                    allowClear
+                    onChange={() => form.setFieldsValue({ note_sub_status: undefined, note_call_stage: '2 Call' })}
+                    options={noteMainCategoryOptions.map(v => ({ label: v, value: v }))}
+                  />
+                </Form.Item>
+              </Col>
+              <Col span={24}>
+                <Form.Item name="note_sub_status" label="Status" style={{ marginBottom: 8 }}>
+                  <Select
+                    placeholder="Select status"
+                    allowClear
+                    disabled={!noteMainCategory}
+                    onChange={() => form.setFieldValue('note_call_stage', '2 Call')}
+                    options={noteSubStatusOptions.map(v => ({ label: v, value: v }))}
+                  />
+                </Form.Item>
+              </Col>
+              <Col span={24}>
+                <Form.Item name="note_call_stage" label="Call Stage" initialValue="2 Call" style={{ marginBottom: 8 }}>
+                  <Select
+                    placeholder="Select call stage"
+                    allowClear
+                    disabled={!noteSubStatus}
+                    options={NOTE_CALL_STAGE_OPTIONS.map(v => ({ label: v, value: v }))}
+                  />
+                </Form.Item>
+              </Col>
+            </Row>
+            {selectedTemplateText ? (
+              <Alert
+                type="info"
+                showIcon
+                style={{ marginBottom: 8 }}
+                message="Template Preview"
+                description={selectedTemplateText}
+              />
+            ) : null}
+            <Button icon={<MessageOutlined />} onClick={insertSelectedTemplateIntoNotes}>
+              Insert Template in Notes
+            </Button>
+          </Card>
           <Row gutter={16}>
             <Col span={8}>
               <Form.Item name="utm_source" label="UTM Source">
