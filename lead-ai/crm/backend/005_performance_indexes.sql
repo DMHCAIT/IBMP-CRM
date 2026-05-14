@@ -29,11 +29,11 @@ CREATE INDEX IF NOT EXISTS idx_leads_status_created ON leads(status, created_at 
 -- Index for source filtering
 CREATE INDEX IF NOT EXISTS idx_leads_source_created ON leads(source, created_at DESC);
 
--- Partial index for Fresh leads (most queried status)
-CREATE INDEX IF NOT EXISTS idx_leads_fresh ON leads(created_at DESC) WHERE status = 'Fresh';
+-- Partial index for FRESH leads (most queried status)
+CREATE INDEX IF NOT EXISTS idx_leads_fresh ON leads(created_at DESC) WHERE status = 'FRESH';
 
--- Partial index for Follow Up leads with dates
-CREATE INDEX IF NOT EXISTS idx_leads_followup ON leads(follow_up_date) WHERE status = 'Follow Up' AND follow_up_date IS NOT NULL;
+-- Partial index for FOLLOW_UP leads with dates
+CREATE INDEX IF NOT EXISTS idx_leads_followup ON leads(follow_up_date) WHERE status = 'FOLLOW_UP' AND follow_up_date IS NOT NULL;
 
 -- Index for AI score sorting
 CREATE INDEX IF NOT EXISTS idx_leads_ai_score_desc ON leads(ai_score DESC NULLS LAST);
@@ -42,7 +42,6 @@ CREATE INDEX IF NOT EXISTS idx_leads_ai_score_desc ON leads(ai_score DESC NULLS 
 ANALYZE leads;
 ANALYZE notes;
 ANALYZE activities;
-ANALYZE communication_history;
 
 -- Verification: Check indexes on leads table
 SELECT 

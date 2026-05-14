@@ -480,10 +480,6 @@ const CampaignAnalyticsPage = () => {
                       size="small"
                     />
                   </>
-                )
-                    scroll={{ x: 1600 }}
-                    size="small"
-                  />
                 )}
               </Card>
             ),
