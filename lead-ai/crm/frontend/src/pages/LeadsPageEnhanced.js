@@ -638,12 +638,15 @@ const LeadsPageEnhanced = () => {
       queryClient.invalidateQueries({ queryKey: ['leads'] });
       queryClient.invalidateQueries({ queryKey: ['lead', leadId] });
     },
-    onError: (e) => message.error(`Failed: ${e.message}`),
+    onError: (e) => {
+      console.error('Update lead error:', e, e.response);
+      const detail = e.response?.data?.detail || e.message;
+      message.error(`Failed to update: ${detail}`);
+    },
   });
 
   // Debounced inline update — prevents rapid-fire API calls when user
-  // clicks through dropdown options quickly. Waits 400ms after the last
-  // change before sending the PUT request.
+  // clicks through dropdown options quickly. Reduced to 200ms for faster feedback.
   const _inlineTimer = useRef({});
   const inlineUpdate = useCallback((leadId, field, value) => {
     // Intercept: if setting status → Enrolled, show payment details modal first
@@ -656,7 +659,7 @@ const LeadsPageEnhanced = () => {
     _inlineTimer.current[key] = setTimeout(() => {
       delete _inlineTimer.current[key];
       updateMutation.mutate({ leadId, data: { [field]: value } });
-    }, 400);
+    }, 200); // Reduced from 400ms to 200ms for faster response
   }, [updateMutation]);
 
   // Cancel all pending inline timers on unmount
