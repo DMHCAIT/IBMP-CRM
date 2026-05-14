@@ -97,48 +97,17 @@ export function WebSocketProvider({ children }) {
         } catch (_) {}
       };
 
-      ws.onerror = () => {
-        // onerror is always followed by onclose — handle cleanup there
-        // Silently handle errors to avoid console spam
-      };
+      ws.onerror = () => {}; // Silent
 
-      ws.onclose = (event) => {
+      ws.onclose = () => {
         connectedRef.current = false;
         setStatus('disconnected');
-
-        // 4001 = missing token, 4003 = auth failed → don't reconnect
-        if (event.code === 4001 || event.code === 4003) {
-          if (attemptRef.current === 0) {
-            console.info('[WS] Auth failed or missing token. Real-time updates disabled.');
-          }
-          return;
-        }
-
-        // Stop retrying after max attempts (avoids console spam on Render free tier)
-        if (attemptRef.current >= MAX_RECONNECT_ATTEMPTS) {
-          if (attemptRef.current === MAX_RECONNECT_ATTEMPTS) {
-            console.info('[WS] Max reconnect attempts reached. Real-time updates paused. (This is normal on free hosting)');
-          }
-          return;
-        }
-
-
-      // Schedule reconnect with back-off
-      const delay = BACKOFF[Math.min(attemptRef.current, BACKOFF.length - 1)];
-      attemptRef.current += 1;
-
-      reconnectTimer.current = setTimeout(() => {
-        const currentToken = getAuthToken();
-        if (currentToken) {
-          _connect(tenantRef.current, currentToken);
-        }
-      }, delay);
-    };
+        // No reconnect - WebSocket is optional
+      };
     } catch (error) {
-      // WebSocket creation failed
+      // Silent - WebSocket is optional
       connectedRef.current = false;
       setStatus('disconnected');
-      console.info('[WS] WebSocket unavailable. Real-time features disabled. (This is normal on some hosting providers)');
     }
   }, [_dispatch]);
 

@@ -295,18 +295,25 @@ async def campaign_leads(campaign_name: Optional[str] = None, medium: Optional[s
     """
     All individual leads that have campaign data (synced from Google Sheet).
     Returns full campaign detail fields per lead — powers the Sheet Leads tab.
+    
+    NOTE: Supabase PostgREST has default 1000 row limit.
+    Must use .range() instead of .limit() to fetch more rows.
     """
     try:
         query = supabase_data.client.table("leads").select(
             "lead_id,full_name,phone,email,country,city,status,source,"
             "campaign_name,campaign_medium,campaign_group,ad_name,adset_name,"
             "form_name,lead_quality,qualification,assigned_to,created_at,ai_score,ai_segment"
-        ).order("created_at", desc=True).limit(limit)
+        )
 
         if campaign_name:
             query = query.eq("campaign_name", campaign_name)
         if medium:
             query = query.eq("campaign_medium", medium)
+
+        # Use .range() instead of .limit() to bypass Supabase's 1000 row default
+        # Range is 0-indexed and inclusive: range(0, 69999) = 70,000 rows
+        query = query.range(0, limit - 1).order("created_at", desc=True)
 
         response = query.execute()
         leads = response.data or []
