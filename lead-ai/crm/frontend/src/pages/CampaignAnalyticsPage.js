@@ -213,29 +213,58 @@ const CampaignAnalyticsPage = () => {
       ),
     },
     { title: 'Phone', dataIndex: 'phone', key: 'phone', width: 140 },
+    { title: 'Email', dataIndex: 'email', key: 'email', width: 180 },
     {
       title: 'Status', dataIndex: 'status', key: 'status', width: 110,
       render: v => <Tag color={STATUS_COLOR[v] || 'default'}>{v}</Tag>,
+    },
+    {
+      title: 'Course Interest', dataIndex: 'course_interested', key: 'course_interested', width: 150,
+      render: v => v ? <Tag color="cyan">{v}</Tag> : <span style={{ color: '#bbb' }}>—</span>,
+    },
+    { 
+      title: 'Qualification', dataIndex: 'qualification', key: 'qualification', width: 140,
+      render: v => v || <span style={{ color: '#bbb' }}>—</span>,
     },
     {
       title: 'Campaign Name', dataIndex: 'campaign_name', key: 'campaign_name', width: 200,
       render: v => v ? <Tag color="purple">{v}</Tag> : <span style={{ color: '#bbb' }}>—</span>,
     },
     {
+      title: 'Campaign ID', dataIndex: 'campaign_id', key: 'campaign_id', width: 150,
+      render: v => v ? <span style={{ fontSize: '12px', color: '#666' }}>{v}</span> : <span style={{ color: '#bbb' }}>—</span>,
+    },
+    {
       title: 'Platform', dataIndex: 'campaign_medium', key: 'campaign_medium', width: 110,
       render: v => v ? <Tag color="blue">{v}</Tag> : <span style={{ color: '#bbb' }}>—</span>,
+    },
+    {
+      title: 'Is Organic', dataIndex: 'is_organic', key: 'is_organic', width: 100,
+      render: v => v ? <Tag color="green">Yes</Tag> : <Tag color="orange">Paid</Tag>,
     },
     {
       title: 'Ad Name', dataIndex: 'ad_name', key: 'ad_name', width: 180,
       render: v => v || <span style={{ color: '#bbb' }}>—</span>,
     },
     {
+      title: 'Ad ID', dataIndex: 'ad_id', key: 'ad_id', width: 140,
+      render: v => v ? <span style={{ fontSize: '12px', color: '#666' }}>{v}</span> : <span style={{ color: '#bbb' }}>—</span>,
+    },
+    {
       title: 'Adset', dataIndex: 'adset_name', key: 'adset_name', width: 160,
       render: v => v || <span style={{ color: '#bbb' }}>—</span>,
     },
     {
+      title: 'Adset ID', dataIndex: 'adset_id', key: 'adset_id', width: 140,
+      render: v => v ? <span style={{ fontSize: '12px', color: '#666' }}>{v}</span> : <span style={{ color: '#bbb' }}>—</span>,
+    },
+    {
       title: 'Form', dataIndex: 'form_name', key: 'form_name', width: 160,
       render: v => v || <span style={{ color: '#bbb' }}>—</span>,
+    },
+    {
+      title: 'Form ID', dataIndex: 'form_id', key: 'form_id', width: 140,
+      render: v => v ? <span style={{ fontSize: '12px', color: '#666' }}>{v}</span> : <span style={{ color: '#bbb' }}>—</span>,
     },
     {
       title: 'Quality', dataIndex: 'lead_quality', key: 'lead_quality', width: 90,
@@ -243,6 +272,10 @@ const CampaignAnalyticsPage = () => {
     },
     { title: 'Country', dataIndex: 'country', key: 'country', width: 100 },
     { title: 'Assigned To', dataIndex: 'assigned_to', key: 'assigned_to', width: 130 },
+    {
+      title: 'External ID', dataIndex: 'external_id', key: 'external_id', width: 120,
+      render: v => v ? <span style={{ fontSize: '12px', color: '#666' }}>{v}</span> : <span style={{ color: '#bbb' }}>—</span>,
+    },
     {
       title: 'Created', dataIndex: 'created_at', key: 'created_at', width: 110,
       render: v => v ? new Date(v).toLocaleDateString('en-IN') : '—',

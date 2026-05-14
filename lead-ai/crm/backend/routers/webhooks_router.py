@@ -217,6 +217,10 @@ async def sync_all_from_sheet(
                 lead["lead_id"] = f"LEAD{_ts}{_rand}"
                 lead.setdefault("status", "FRESH")
                 lead.setdefault("source", "Google Sheet")
+                
+                # Preserve created_at from sheet if provided, otherwise use current time
+                if "created_at" not in lead or not lead["created_at"]:
+                    lead["created_at"] = datetime.now(timezone.utc).isoformat()
 
                 new_lead = supabase_data.create_lead(lead)
                 if new_lead:

@@ -48,6 +48,7 @@ function onOpen() {
     .addItem("Sync New Leads Only", "syncNewLeads")
     .addSeparator()
     .addItem("Test Connection", "testConnection")
+    .addItem("Enable Auto-Sync (Every 5 Min)", "setupAutoSyncTrigger")
     .addToUi();
 }
 
@@ -57,81 +58,108 @@ function onOpen() {
  */
 var COLUMN_MAP = {
   // Name
-  "Full Name":                   "full_name",
-  "Name":                        "full_name",
-  "full_name":                   "full_name",
+  "Full Name":                              "full_name",
+  "Name":                                   "full_name",
+  "full_name":                              "full_name",
 
   // Contact
-  "Email":                       "email",
-  "email":                       "email",
-  "Phone":                       "phone",
-  "Phone Number":                "phone",
-  "phone_number":                "phone",           // Meta sheet column
-  "WhatsApp":                    "whatsapp",
-  "whatsapp":                    "whatsapp",
+  "Email":                                  "email",
+  "email":                                  "email",
+  "Phone":                                  "phone",
+  "Phone Number":                           "phone",
+  "phone_number":                           "phone",           // Meta sheet column
+  "WhatsApp":                               "whatsapp",
+  "whatsapp":                               "whatsapp",
 
   // Location
-  "Country":                     "country",
-  "country":                     "country",
-  "City":                        "city",
-  "city":                        "city",
+  "Country":                                "country",
+  "country":                                "country",
+  "City":                                   "city",
+  "city":                                   "city",
 
   // Source / Status
-  "Source":                      "source",
-  "source":                      "source",
-  "Platform":                    "campaign_medium", // Meta sheet: Facebook/Instagram
-  "platform":                    "campaign_medium",
-  "Status":                      "status",
-  "Lead Status":                 "status",
-  "lead_status":                 "status",          // Meta sheet column
+  "Source":                                 "source",
+  "source":                                 "source",
+  "Platform":                               "campaign_medium", // Meta sheet: Facebook/Instagram
+  "platform":                               "campaign_medium",
+  "Is Organic":                             "is_organic",
+  "is_organic":                             "is_organic",      // Meta sheet column
+  "Status":                                 "status",
+  "Lead Status":                            "status",
+  "lead_status":                            "status",          // Meta sheet column
 
-  // Course
-  "Course":                      "course_interested",
-  "Course Interested":           "course_interested",
-  "course_interested":           "course_interested",
+  // Course / Program Interest
+  "Course":                                 "course_interested",
+  "Course Interested":                      "course_interested",
+  "course_interested":                      "course_interested",
+  "In Which Program Are You Interested?":   "course_interested",
+  "in_which_program_are_you_interested_?":  "course_interested", // Meta sheet column
 
   // Assignment & follow-up
-  "Assigned To":                 "assigned_to",
-  "Counselor":                   "assigned_to",
-  "Lead Owner":                  "assigned_to",
-  "lead_owner":                  "assigned_to",
-  "Follow Up Date":              "follow_up_date",
-  "follow_up_date":              "follow_up_date",
-  "Next Action":                 "next_action",
-  "next_action":                 "next_action",
+  "Assigned To":                            "assigned_to",
+  "Counselor":                              "assigned_to",
+  "Lead Owner":                             "assigned_to",
+  "lead_owner":                             "assigned_to",
+  "Follow Up Date":                         "follow_up_date",
+  "follow_up_date":                         "follow_up_date",
+  "Next Action":                            "next_action",
+  "next_action":                            "next_action",
 
   // Priority & qualification
-  "Priority":                    "priority_level",
-  "priority_level":              "priority_level",
-  "Qualification":               "qualification",
-  "Your Highest Qualification:": "qualification",   // Meta sheet column (with colon)
-  "your_highest_qualification:": "qualification",
-  "Your Highest Qualification":  "qualification",
-  "your_highest_qualification":  "qualification",
+  "Priority":                               "priority_level",
+  "priority_level":                         "priority_level",
+  "Qualification":                          "qualification",
+  "Your Highest Qualification:":            "qualification",   // Meta sheet column (with colon)
+  "your_highest_qualification:":            "qualification",
+  "your_highest_qualification":             "qualification",   // Meta sheet column (no colon)
+  "Your Highest Qualification":             "qualification",
 
   // Company & notes
-  "Company":                     "company",
-  "company":                     "company",
-  "Notes":                       "notes",
-  "notes":                       "notes",
+  "Company":                                "company",
+  "company":                                "company",
+  "Notes":                                  "notes",
+  "notes":                                  "notes",
 
-  // Campaign / marketing fields
-  "Campaign Name":               "campaign_name",
-  "campaign_name":               "campaign_name",   // Meta sheet column
-  "Campaign Medium":             "campaign_medium",
-  "campaign_medium":             "campaign_medium",
-  "Campaign Group":              "campaign_group",
-  "campaign_group":              "campaign_group",
-  "Ad Name":                     "ad_name",
-  "ad_name":                     "ad_name",         // Meta sheet column
-  "Adset Name":                  "adset_name",
-  "adset_name":                  "adset_name",      // Meta sheet column
-  "Form Name":                   "form_name",
-  "form_name":                   "form_name",       // Meta sheet column
-  "Lead Quality":                "lead_quality",
-  "lead_quality":                "lead_quality",
-  "Lead Rating":                 "lead_rating",
-  "lead_rating":                 "lead_rating",
+  // Campaign / marketing fields - IDs
+  "ID":                                     "external_id",     // Sheet row ID
+  "id":                                     "external_id",
+  "Campaign ID":                            "campaign_id",
+  "campaign_id":                            "campaign_id",     // Meta sheet column
+  "Ad ID":                                  "ad_id",
+  "ad_id":                                  "ad_id",           // Meta sheet column
+  "Adset ID":                               "adset_id",
+  "adset_id":                               "adset_id",        // Meta sheet column
+  "Form ID":                                "form_id",
+  "form_id":                                "form_id",         // Meta sheet column
+
+  // Campaign / marketing fields - Names
+  "Campaign Name":                          "campaign_name",
+  "campaign_name":                          "campaign_name",   // Meta sheet column
+  "Campaign Medium":                        "campaign_medium",
+  "campaign_medium":                        "campaign_medium",
+  "Campaign Group":                         "campaign_group",
+  "campaign_group":                         "campaign_group",
+  "Ad Name":                                "ad_name",
+  "ad_name":                                "ad_name",         // Meta sheet column
+  "Adset Name":                             "adset_name",
+  "adset_name":                             "adset_name",      // Meta sheet column
+  "Form Name":                              "form_name",
+  "form_name":                              "form_name",       // Meta sheet column
+
+  // Date/Time fields
+  "Created Time":                           "created_at",
+  "created_time":                           "created_at",      // Meta sheet column
+  "Created At":                             "created_at",
+  "created_at":                             "created_at",
+  "Date":                                   "created_at",
+  "Timestamp":                              "created_at",
+  "timestamp":                              "created_at",
+
+  // Quality & rating
+  "Lead Quality":                           "lead_quality",
+  "lead_quality":                           "lead_quality",
+  "Lead Rating":                            "lead_rating",
+  "lead_rating":                            "lead_rating",
 };
 
 /** Column that stores the CRM Lead ID (e.g. "LEAD2605XXXX"). */
@@ -191,65 +219,98 @@ function onEdit(e) {
 
 /**
  * Reads every row that has no Lead ID yet and bulk-creates them in the CRM.
+ * Scans ALL sheets in the workbook, not just the active one.
  * Install as a time-driven trigger (every 5 minutes or every hour).
  * Can also be run manually from the Apps Script editor.
  */
 function syncNewLeads() {
   var ss      = SpreadsheetApp.getActiveSpreadsheet();
-  var sheet   = ss.getActiveSheet();
-  var data    = sheet.getDataRange().getValues();
-  var headers = data[0];
+  var sheets  = ss.getSheets();  // Scan ALL sheets instead of just active
+  
+  var allLeads = [];  // Collect leads from all sheets
+  var sheetRowMap = [];  // Track which sheet + row each lead came from
 
-  var leadIdColIdx = headers.indexOf(LEAD_ID_COLUMN);
-  var newLeads     = [];
-  var rowIndices   = [];  // track which rows to write Lead IDs back to
+  // Loop through every sheet in the workbook
+  for (var s = 0; s < sheets.length; s++) {
+    var sheet   = sheets[s];
+    var sheetName = sheet.getName();
+    
+    try {
+      var data    = sheet.getDataRange().getValues();
+      if (data.length < 2) continue;  // Skip empty sheets
+      
+      var headers = data[0];
+      var leadIdColIdx = headers.indexOf(LEAD_ID_COLUMN);
 
-  for (var r = 1; r < data.length; r++) {
-    var row    = data[r];
-    var leadId = leadIdColIdx >= 0 ? row[leadIdColIdx] : "";
+      for (var r = 1; r < data.length; r++) {
+        var row    = data[r];
+        var leadId = leadIdColIdx >= 0 ? row[leadIdColIdx] : "";
 
-    // Skip rows that already have a Lead ID or are completely empty
-    if (leadId || row.every(function(c) { return c === ""; })) continue;
+        // Skip rows that already have a Lead ID or are completely empty
+        if (leadId || row.every(function(c) { return c === ""; })) continue;
 
-    var lead = {};
-    for (var c = 0; c < headers.length; c++) {
-      var crmField = COLUMN_MAP[headers[c]];
-      if (crmField && row[c] !== "") {
-        lead[crmField] = String(row[c]);
+        var lead = {};
+        for (var c = 0; c < headers.length; c++) {
+          var crmField = COLUMN_MAP[headers[c]];
+          if (crmField && row[c] !== "") {
+            lead[crmField] = String(row[c]);
+          }
+        }
+
+        // Removed validation — sync ALL rows regardless of missing fields
+
+        // Defaults
+        if (!lead.source) lead.source = "Website";
+        if (!lead.status) lead.status = "Fresh";
+
+        allLeads.push(lead);
+        sheetRowMap.push({ sheet: sheet, sheetName: sheetName, row: r + 1, leadIdColIdx: leadIdColIdx });
       }
+    } catch (sheetErr) {
+      Logger.log("syncNewLeads: Error processing sheet '" + sheetName + "': " + sheetErr.message);
     }
-
-    // Need at minimum a name or phone to create a lead
-    if (!lead.full_name && !lead.phone) continue;
-
-    // Defaults
-    if (!lead.source) lead.source = "Website";
-    if (!lead.status) lead.status = "Fresh";
-
-    newLeads.push(lead);
-    rowIndices.push(r + 1); // 1-indexed sheet row
   }
 
-  if (newLeads.length === 0) {
-    Logger.log("syncNewLeads: no new rows to import.");
+  if (allLeads.length === 0) {
+    Logger.log("syncNewLeads: no new rows to import across any sheets.");
     return;
   }
 
-  Logger.log("syncNewLeads: importing " + newLeads.length + " leads...");
+  Logger.log("syncNewLeads: importing " + allLeads.length + " leads from " + sheets.length + " sheets...");
 
   try {
-    var resp = _post(LEADS_ENDPOINT, newLeads);
-    Logger.log("CRM response: " + resp);
+    // Use webhook endpoint instead of /api/leads/bulk-create to avoid 401 error
+    var options = {
+      method: "post",
+      contentType: "application/json",
+      headers: {
+        "X-Webhook-Secret": WEBHOOK_SECRET  // Use webhook auth instead of Bearer token
+      },
+      payload: JSON.stringify({ leads: allLeads }),
+      muteHttpExceptions: true
+    };
+    
+    var response = UrlFetchApp.fetch(SYNC_ALL_ENDPOINT, options);
+    var statusCode = response.getResponseCode();
+    var body = response.getContentText();
+    
+    Logger.log("CRM response [" + statusCode + "]: " + body);
 
-    // Write back the assigned Lead IDs if the API returns them
-    var parsed = JSON.parse(resp);
-    if (parsed.results && parsed.results.success && leadIdColIdx >= 0) {
-      var successes = parsed.results.success;
-      for (var i = 0; i < successes.length && i < rowIndices.length; i++) {
-        if (successes[i].lead_id) {
-          sheet.getRange(rowIndices[i], leadIdColIdx + 1).setValue(successes[i].lead_id);
+    if (statusCode >= 200 && statusCode < 300) {
+      // Write back the assigned Lead IDs
+      var parsed = JSON.parse(body);
+      if (parsed.results && parsed.results.length > 0) {
+        for (var i = 0; i < parsed.results.length && i < sheetRowMap.length; i++) {
+          var result = parsed.results[i];
+          var mapping = sheetRowMap[i];
+          
+          if (result.lead_id && mapping.leadIdColIdx >= 0) {
+            mapping.sheet.getRange(mapping.row, mapping.leadIdColIdx + 1).setValue(result.lead_id);
+          }
         }
       }
+    } else {
+      Logger.log("syncNewLeads: CRM returned error code " + statusCode);
     }
   } catch (err) {
     Logger.log("syncNewLeads error: " + err.message);
@@ -275,6 +336,7 @@ function syncAllLeads() {
   var totalSent    = 0;
   var totalCreated = 0;
   var totalUpdated = 0;
+  var totalFailed  = 0;
   var errors       = [];
 
   for (var s = 0; s < sheets.length; s++) {
@@ -321,25 +383,41 @@ function syncAllLeads() {
     for (var i = 0; i < batch.length; i += CHUNK) {
       var chunk = batch.slice(i, i + CHUNK);
       try {
-        var respText = _post(SYNC_ALL_ENDPOINT, { leads: chunk });
-        var parsed   = JSON.parse(respText);
+        var resp     = _postDetailed(SYNC_ALL_ENDPOINT, { leads: chunk });
+        var parsed   = null;
 
-        totalSent    += chunk.length;
-        totalCreated += (parsed.created || 0);
-        totalUpdated += (parsed.updated || 0);
+        try {
+          parsed = JSON.parse(resp.bodyText || "{}");
+        } catch (_jsonErr) {
+          parsed = null;
+        }
 
-        // Write back Lead IDs for newly created leads
-        if (parsed.results && leadIdColIdx >= 0) {
-          for (var j = 0; j < parsed.results.length; j++) {
-            var res = parsed.results[j];
-            if (res.lead_id && !chunk[j].lead_id) {
-              var sheetRow = rowMap[i + j];
-              sheet.getRange(sheetRow, leadIdColIdx + 1).setValue(res.lead_id);
+        if (resp.statusCode >= 200 && resp.statusCode < 300 && parsed) {
+          totalSent    += chunk.length;
+          totalCreated += (parsed.created || 0);
+          totalUpdated += (parsed.updated || 0);
+
+          // Write back Lead IDs for newly created leads
+          if (parsed.results && leadIdColIdx >= 0) {
+            for (var j = 0; j < parsed.results.length; j++) {
+              var res = parsed.results[j];
+              if (res.lead_id && !chunk[j].lead_id) {
+                var sheetRow = rowMap[i + j];
+                sheet.getRange(sheetRow, leadIdColIdx + 1).setValue(res.lead_id);
+              }
             }
           }
+        } else {
+          totalFailed += chunk.length;
+          var detail = parsed && parsed.detail ? parsed.detail : (resp.bodyText || "Unknown error");
+          errors.push(
+            sheet.getName() + " rows " + (i + 1) + "-" + Math.min(i + CHUNK, batch.length)
+            + " → HTTP " + resp.statusCode + " — " + detail
+          );
         }
       } catch (err) {
-        errors.push(sheet.getName() + " row " + (i + 1) + ": " + err.message);
+        totalFailed += chunk.length;
+        errors.push(sheet.getName() + " rows " + (i + 1) + "-" + Math.min(i + CHUNK, batch.length) + ": " + err.message);
       }
     }
   }
@@ -347,9 +425,13 @@ function syncAllLeads() {
   var msg = "Sync complete!\n\n"
     + "Sent:    " + totalSent    + "\n"
     + "Created: " + totalCreated + "\n"
-    + "Updated: " + totalUpdated + "\n";
+    + "Updated: " + totalUpdated + "\n"
+    + "Failed:  " + totalFailed  + "\n";
   if (errors.length > 0) {
     msg += "\nErrors:\n" + errors.slice(0, 5).join("\n");
+  }
+  if (totalFailed > 0 && errors.join(" ").indexOf("Invalid webhook secret") >= 0) {
+    msg += "\n\nHint: WEBHOOK_SECRET in Apps Script must match SHEETS_WEBHOOK_SECRET on Render.";
   }
   ui.alert("IBMP CRM — Sync All Leads", msg, ui.ButtonSet.OK);
 }
@@ -362,12 +444,67 @@ function syncAllLeads() {
  */
 function testConnection() {
   try {
-    var resp = UrlFetchApp.fetch(WEBHOOK_ENDPOINT, { method: "get", muteHttpExceptions: true });
-    Logger.log("Status: " + resp.getResponseCode());
-    Logger.log("Body:   " + resp.getContentText());
-    SpreadsheetApp.getUi().alert("Connection OK!\n\n" + resp.getContentText());
+    var ui = SpreadsheetApp.getUi();
+
+    // 1) Basic reachability
+    var health = UrlFetchApp.fetch(WEBHOOK_ENDPOINT, { method: "get", muteHttpExceptions: true });
+    var healthCode = health.getResponseCode();
+
+    // 2) Secret validation (important): lightweight POST to sync-all endpoint
+    var probe = _postDetailed(SYNC_ALL_ENDPOINT, { leads: [] });
+    var probeMsg = "";
+    try {
+      var probeJson = JSON.parse(probe.bodyText || "{}");
+      probeMsg = probeJson.detail || probe.bodyText;
+    } catch (_e) {
+      probeMsg = probe.bodyText;
+    }
+
+    var msg = "Health GET: HTTP " + healthCode + "\n"
+      + "Sync POST: HTTP " + probe.statusCode + "\n\n"
+      + "Response: " + probeMsg;
+
+    if (probe.statusCode === 403) {
+      msg += "\n\nSecret mismatch. Set WEBHOOK_SECRET in Apps Script equal to SHEETS_WEBHOOK_SECRET in Render.";
+    }
+    ui.alert("IBMP CRM — Connection Test", msg, ui.ButtonSet.OK);
   } catch (err) {
     SpreadsheetApp.getUi().alert("Connection FAILED:\n" + err.message);
+  }
+}
+
+/**
+ * Sets up automatic sync trigger to run every 5 minutes.
+ * Run this function once from the Apps Script editor to install the trigger.
+ * 
+ * To verify: Tools → Triggers in the left sidebar.
+ * To remove: Find "syncNewLeads" in Triggers and delete it.
+ */
+function setupAutoSyncTrigger() {
+  try {
+    // Remove existing syncNewLeads triggers to avoid duplicates
+    var triggers = ScriptApp.getProjectTriggers();
+    for (var i = 0; i < triggers.length; i++) {
+      if (triggers[i].getHandlerFunction() === "syncNewLeads") {
+        ScriptApp.deleteTrigger(triggers[i]);
+      }
+    }
+
+    // Create new time-driven trigger: every 5 minutes
+    ScriptApp.newTrigger("syncNewLeads")
+      .timeBased()
+      .everyMinutes(5)
+      .create();
+
+    SpreadsheetApp.getUi().alert(
+      "Auto-Sync Enabled",
+      "syncNewLeads() will now run every 5 minutes.\n\n"
+      + "To verify: Tools → Triggers\n"
+      + "To disable: Delete the 'syncNewLeads' trigger from the Triggers page.",
+      SpreadsheetApp.getUi().ButtonSet.OK
+    );
+  } catch (err) {
+    SpreadsheetApp.getUi().alert("Trigger Setup Failed:\n" + err.message);
   }
 }
 
@@ -386,4 +523,21 @@ function _post(url, payload) {
   var resp = UrlFetchApp.fetch(url, options);
   Logger.log("POST " + url + " → " + resp.getResponseCode());
   return resp.getContentText();
+}
+
+function _postDetailed(url, payload) {
+  var options = {
+    method:             "post",
+    contentType:        "application/json",
+    payload:            JSON.stringify(payload),
+    muteHttpExceptions: true,
+    headers: {
+      "X-Webhook-Secret": WEBHOOK_SECRET,
+    },
+  };
+  var resp = UrlFetchApp.fetch(url, options);
+  var code = resp.getResponseCode();
+  var body = resp.getContentText();
+  Logger.log("POST " + url + " → " + code + " " + body);
+  return { statusCode: code, bodyText: body };
 }
