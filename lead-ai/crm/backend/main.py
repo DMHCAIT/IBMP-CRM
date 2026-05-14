@@ -886,12 +886,19 @@ def _normalise_status(v):
     if not v:
         return v
     raw = str(v).strip()
+    
+    # Debug logging to track status normalization issues
+    logger.info(f"_normalise_status: input={repr(v)}, raw={repr(raw)}")
+    
     # Already a valid status (handles correct casing straight from files)
     if raw in _VALID_STATUSES:
+        logger.info(f"_normalise_status: matched valid status directly: {raw}")
         return raw
     key = raw.lower()
+    result = _STATUS_NORMALISE_MAP.get(key, "FRESH")
+    logger.info(f"_normalise_status: key={repr(key)}, result={result}")
     # Return mapped canonical value, or default to "FRESH" for anything unrecognised
-    return _STATUS_NORMALISE_MAP.get(key, "FRESH")
+    return result
 
 
 # Canonical source values and their import aliases
@@ -1010,7 +1017,7 @@ class LeadUpdate(BaseModel):
     country: Optional[str] = None
     source: Optional[str] = None
     course_interested: Optional[str] = None
-    status: Optional[LeadStatus] = None
+    status: Optional[str] = None  # Changed from LeadStatus enum to str to allow flexible input like "Not Answering"
     follow_up_date: Optional[datetime] = None
     assigned_to: Optional[str] = None
     qualification: Optional[str] = None  # Educational qualification, e.g. MBBS, MD, BDS
