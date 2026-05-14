@@ -296,7 +296,8 @@ class SupabaseDataLayer:
                 query = query.gte('updated_at', updated_from).lte('updated_at', updated_to)
             
             # Apply ordering and pagination
-            effective_limit = min(limit, 1000)
+            # Increased limit cap from 1000 to 100000 to support large datasets
+            effective_limit = min(limit, 100000)
             query = query.order('updated_at', desc=True).order('created_at', desc=True)
             query = query.range(skip, skip + effective_limit - 1)
             

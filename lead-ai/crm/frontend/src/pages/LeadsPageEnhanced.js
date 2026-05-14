@@ -644,18 +644,18 @@ const LeadsPageEnhanced = () => {
 
   const updateMutation = useMutation({
     mutationFn: ({ leadId, data }) => leadsAPI.update(leadId, data),
-    onSuccess: (updatedLead, { leadId, data: changedFields }) => {
+    onSuccess: (updatedLead, { leadId }) => {
       message.success('Lead updated!');
-      // Immediately patch the cached row so "Last Updated" shows the correct
-      // time right away — no waiting for the background refetch to complete.
-      const now = new Date().toISOString();
+      // Immediately patch the cached row with the ACTUAL data returned from the API.
+      // This ensures the UI reflects exactly what the backend stored (including any
+      // normalization, validation, or transformation the backend applied).
       queryClient.setQueriesData(
         { queryKey: ['leads'], exact: false },
         (old) => {
           if (!old?.leads) return old;
           const patched = old.leads.map(l =>
             l.lead_id === leadId
-              ? { ...l, ...changedFields, updated_at: now }
+              ? { ...l, ...updatedLead }  // Use actual API response, not just changedFields
               : l
           );
           // Re-sort: most recently updated lead floats to the top

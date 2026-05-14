@@ -485,7 +485,9 @@ async def get_leads(
     from main import LEAD_CACHE, LeadStatus, LeadSegment
 
     skip  = max(0, int(skip))
-    limit = max(1, min(int(limit), 1000))
+    # Increased limit cap from 1000 to 100000 to support large datasets
+    # Supabase PostgREST can handle this with proper .range() queries
+    limit = max(1, min(int(limit), 100000))
 
     # Department-based lead isolation
     try:
