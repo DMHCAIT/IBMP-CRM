@@ -260,8 +260,25 @@ function syncNewLeads() {
 
         // Removed validation — sync ALL rows regardless of missing fields
 
-        // Defaults
-        if (!lead.source) lead.source = "Website";
+        // Map platform shortcuts to CRM source values
+        if (lead.campaign_medium) {
+          var platformLower = String(lead.campaign_medium).toLowerCase().trim();
+          if (platformLower === "fb" || platformLower === "facebook") {
+            lead.source = "Facebook";
+          } else if (platformLower === "ig" || platformLower === "instagram") {
+            lead.source = "Instagram";
+          } else if (platformLower === "wa" || platformLower === "whatsapp") {
+            lead.source = "WhatsApp";
+          } else if (platformLower === "google" || platformLower === "gads") {
+            lead.source = "Google Ads";
+          } else if (platformLower === "linkedin" || platformLower === "li") {
+            lead.source = "LinkedIn";
+          } else {
+            lead.source = lead.campaign_medium;  // Use as-is if no match
+          }
+        }
+        
+        // Default status only
         if (!lead.status) lead.status = "Fresh";
 
         allLeads.push(lead);
@@ -403,7 +420,25 @@ function syncAllLeads() {
 
       if (!lead.full_name && !lead.phone) continue;
 
-      if (!lead.source) lead.source = "Google Sheet";
+      // Map platform shortcuts to CRM source values
+      if (lead.campaign_medium && !lead.source) {
+        var platformLower = String(lead.campaign_medium).toLowerCase().trim();
+        if (platformLower === "fb" || platformLower === "facebook") {
+          lead.source = "Facebook";
+        } else if (platformLower === "ig" || platformLower === "instagram") {
+          lead.source = "Instagram";
+        } else if (platformLower === "wa" || platformLower === "whatsapp") {
+          lead.source = "WhatsApp";
+        } else if (platformLower === "google" || platformLower === "gads") {
+          lead.source = "Google Ads";
+        } else if (platformLower === "linkedin" || platformLower === "li") {
+          lead.source = "LinkedIn";
+        } else {
+          lead.source = lead.campaign_medium;  // Use as-is if no match
+        }
+      }
+      
+      // Default status only
       if (!lead.status) lead.status = "Fresh";
 
       batch.push(lead);
