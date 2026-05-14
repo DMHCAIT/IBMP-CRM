@@ -519,12 +519,12 @@ const LeadsPageEnhanced = () => {
         throw err; // Re-throw to trigger error state
       }
     },
-    staleTime: 0,              // always fetch fresh after invalidation
+    staleTime: 30 * 1000,          // 30 seconds - reduce unnecessary refetches
     gcTime: 5 * 60 * 1000,
     refetchInterval: false,
-    refetchOnWindowFocus: true,  // re-check when user comes back to the tab
-    retry: 3,
-    retryDelay: (attemptIndex) => Math.min(2000 * 2 ** attemptIndex, 30000),
+    refetchOnWindowFocus: false,   // Don't refetch on tab focus - use manual refetch button instead
+    retry: 2,                      // Reduce retries from 3 to 2 for faster failure
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 10000), // Faster retry intervals
   });
 
   const leads = leadsResponse?.leads || [];

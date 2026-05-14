@@ -2,15 +2,13 @@
  * AuthContext — Secure JWT authentication
  *
  * Security model:
- *  - JWT token is stored IN MEMORY ONLY (never written to localStorage/sessionStorage).
- *    This prevents XSS attacks from stealing tokens.
- *  - Non-sensitive user metadata (name, role, email — NO token) is persisted in
- *    sessionStorage so the UI remains responsive after a page refresh.
- *  - On a full page reload the token is gone; the Axios interceptor will send no
- *    Authorization header and the server will return 401, redirecting to /login.
- *    This is the correct, secure behaviour.
+ *  - JWT token is stored in sessionStorage (persists during browser session).
+ *    This allows page refreshes without logout while still being cleared on tab close.
+ *  - User metadata (name, role, email) is also persisted in sessionStorage.
+ *  - On page reload, both token and user metadata are restored automatically.
  *  - Logout across tabs is handled via a BroadcastChannel (where supported) or the
  *    storage event on the sessionStorage key.
+ *  - For maximum security, consider storing token in httpOnly cookies instead.
  */
 
 import React, { createContext, useContext, useState, useCallback, useEffect, useRef } from 'react';
@@ -21,6 +19,7 @@ const AuthContext = createContext(null);
 
 // Only metadata — NEVER the token — lives in sessionStorage.
 const SESSION_KEY = 'crm_user_meta';
+const TOKEN_KEY = 'crm_auth_token';
 
 // In-memory token store — module-level so Axios interceptors can access it
 // without going through React state.
@@ -28,12 +27,29 @@ let _inMemoryToken = null;
 
 /** Read the token for Axios interceptors (no React dependency). */
 export function getAuthToken() {
-  return _inMemoryToken;
+  // Try memory first, then sessionStorage
+  if (_inMemoryToken) return _inMemoryToken;
+  
+  try {
+    const stored = sessionStorage.getItem(TOKEN_KEY);
+    if (stored) {
+      _inMemoryToken = stored;
+      return stored;
+    }
+  } catch {
+    // sessionStorage unavailable
+  }
+  return null;
 }
 
 /** Clear the in-memory token (called on logout / 401). */
 export function clearAuthToken() {
   _inMemoryToken = null;
+  try {
+    sessionStorage.removeItem(TOKEN_KEY);
+  } catch {
+    // ignore
+  }
 }
 
 function loadSessionMeta() {
@@ -53,6 +69,24 @@ export function AuthProvider({ children }) {
   // user state holds metadata only (no token)
   const [user, setUser] = useState(() => loadSessionMeta());
 
+  // Initialize token from sessionStorage on mount
+  useEffect(() => {
+    try {
+      const storedToken = sessionStorage.getItem(TOKEN_KEY);
+      if (storedToken) {
+        _inMemoryToken = storedToken;
+        
+        // Reconnect WebSocket if token exists
+        if (user && wsCallbacks.connect) {
+          const tenantId = user.tenant_id || 'default';
+          wsCallbacks.connect(storedToken, tenantId);
+        }
+      }
+    } catch {
+      // sessionStorage unavailable
+    }
+  }, []); // Only run once on mount
+
   // BroadcastChannel for cross-tab logout
   const channelRef = useRef(null);
   useEffect(() => {
@@ -60,7 +94,7 @@ export function AuthProvider({ children }) {
       channelRef.current = new BroadcastChannel('crm_auth');
       channelRef.current.onmessage = (e) => {
         if (e.data === 'logout') {
-          _inMemoryToken = null;
+          clearAuthToken();
           sessionStorage.removeItem(SESSION_KEY);
           setUser(null);
         }
@@ -69,7 +103,7 @@ export function AuthProvider({ children }) {
       // BroadcastChannel not supported — fallback to storage event
       const onStorage = (e) => {
         if (e.key === SESSION_KEY && !e.newValue) {
-          _inMemoryToken = null;
+          clearAuthToken();
           setUser(null);
         }
       };
@@ -84,8 +118,16 @@ export function AuthProvider({ children }) {
    * @param {object} userData  — full user object from server (includes token)
    */
   const login = useCallback((userData) => {
-    // Store token in memory only
+    // Store token in memory AND sessionStorage
     _inMemoryToken = userData.token || userData.access_token || null;
+    
+    try {
+      if (_inMemoryToken) {
+        sessionStorage.setItem(TOKEN_KEY, _inMemoryToken);
+      }
+    } catch {
+      // sessionStorage unavailable
+    }
 
     // Persist only non-sensitive metadata
     const { token, access_token, password, ...meta } = userData; // eslint-disable-line no-unused-vars
@@ -107,7 +149,7 @@ export function AuthProvider({ children }) {
     // Close WebSocket before clearing token
     if (wsCallbacks.disconnect) wsCallbacks.disconnect();
 
-    _inMemoryToken = null;
+    clearAuthToken();
     try {
       sessionStorage.removeItem(SESSION_KEY);
       channelRef.current?.postMessage('logout');
@@ -116,7 +158,7 @@ export function AuthProvider({ children }) {
   }, []);
 
   return (
-    <AuthContext.Provider value={{ user, login, logout, isAuthenticated: !!user && !!_inMemoryToken }}>
+    <AuthContext.Provider value={{ user, login, logout, isAuthenticated: !!user && !!getAuthToken() }}>
       {children}
     </AuthContext.Provider>
   );

@@ -81,37 +81,47 @@ export function WebSocketProvider({ children }) {
     const url = buildWsUrl(tenantId, token);
     setStatus('connecting');
 
-    const ws = new WebSocket(url);
-    wsRef.current = ws;
+    try {
+      const ws = new WebSocket(url);
+      wsRef.current = ws;
 
-    ws.onopen = () => {
-      attemptRef.current = 0;
-      setStatus('connected');
-    };
+      ws.onopen = () => {
+        attemptRef.current = 0;
+        setStatus('connected');
+      };
 
-    ws.onmessage = (event) => {
-      try {
-        const envelope = JSON.parse(event.data);
-        _dispatch(envelope);
-      } catch (_) {}
-    };
+      ws.onmessage = (event) => {
+        try {
+          const envelope = JSON.parse(event.data);
+          _dispatch(envelope);
+        } catch (_) {}
+      };
 
-    ws.onerror = () => {
-      // onerror is always followed by onclose — handle cleanup there
-    };
+      ws.onerror = () => {
+        // onerror is always followed by onclose — handle cleanup there
+        // Silently handle errors to avoid console spam
+      };
 
-    ws.onclose = (event) => {
-      connectedRef.current = false;
-      setStatus('disconnected');
+      ws.onclose = (event) => {
+        connectedRef.current = false;
+        setStatus('disconnected');
 
-      // 4001 = missing token, 4003 = auth failed → don't reconnect
-      if (event.code === 4001 || event.code === 4003) return;
+        // 4001 = missing token, 4003 = auth failed → don't reconnect
+        if (event.code === 4001 || event.code === 4003) {
+          if (attemptRef.current === 0) {
+            console.info('[WS] Auth failed or missing token. Real-time updates disabled.');
+          }
+          return;
+        }
 
-      // Stop retrying after max attempts (avoids console spam on Render free tier)
-      if (attemptRef.current >= MAX_RECONNECT_ATTEMPTS) {
-        console.warn('[WS] Max reconnect attempts reached. Real-time updates paused.');
-        return;
-      }
+        // Stop retrying after max attempts (avoids console spam on Render free tier)
+        if (attemptRef.current >= MAX_RECONNECT_ATTEMPTS) {
+          if (attemptRef.current === MAX_RECONNECT_ATTEMPTS) {
+            console.info('[WS] Max reconnect attempts reached. Real-time updates paused. (This is normal on free hosting)');
+          }
+          return;
+        }
+
 
       // Schedule reconnect with back-off
       const delay = BACKOFF[Math.min(attemptRef.current, BACKOFF.length - 1)];
@@ -124,6 +134,12 @@ export function WebSocketProvider({ children }) {
         }
       }, delay);
     };
+    } catch (error) {
+      // WebSocket creation failed
+      connectedRef.current = false;
+      setStatus('disconnected');
+      console.info('[WS] WebSocket unavailable. Real-time features disabled. (This is normal on some hosting providers)');
+    }
   }, [_dispatch]);
 
   // ── Internal: close the connection ─────────────────────────────────────────

@@ -78,18 +78,28 @@ const CampaignAnalyticsPage = () => {
   const { data: overview, isLoading: overviewLoading } = useQuery({
     queryKey: ['campaignOverview'],
     queryFn: () => campaignAPI.getOverview().then(res => res.data),
+    staleTime: 2 * 60 * 1000,     // 2 minutes - overview doesn't change frequently
+    gcTime: 10 * 60 * 1000,       // Keep in cache for 10 minutes
+    refetchOnWindowFocus: false,  // Don't refetch on tab focus
   });
 
   // Fetch campaign list
   const { data: campaigns, isLoading: campaignsLoading } = useQuery({
     queryKey: ['campaignList', selectedMedium],
     queryFn: () => campaignAPI.getCampaignList(selectedMedium, null).then(res => res.data),
+    staleTime: 2 * 60 * 1000,     // 2 minutes cache
+    gcTime: 10 * 60 * 1000,
+    refetchOnWindowFocus: false,
   });
 
-  // Fetch all sheet leads (for Sheet Leads tab)
+  // Fetch all sheet leads (for Sheet Leads tab) - only when tab is active
   const { data: sheetLeads = [], isLoading: sheetLeadsLoading } = useQuery({
     queryKey: ['campaignLeads', selectedCampaign, selectedMedium],
     queryFn: () => campaignAPI.getCampaignLeads(selectedCampaign, selectedMedium).then(res => res.data),
+    enabled: activeTab === 'leads', // Only fetch when Sheet Leads (DB) tab is active
+    staleTime: 1 * 60 * 1000,       // 1 minute cache
+    gcTime: 5 * 60 * 1000,
+    refetchOnWindowFocus: false,
   });
 
   // Filtered sheet leads for search
@@ -460,7 +470,12 @@ const CampaignAnalyticsPage = () => {
                       columns={sheetLeadColumns}
                       dataSource={sheetFetchedLeads}
                       rowKey={(r, i) => r.meta_lead_id || r.phone || i}
-                      pagination={{ pageSize: 50, showTotal: t => `${t} leads` }}
+                      pagination={{ 
+                        pageSize: 100, 
+                        showTotal: (total, range) => `${range[0]}-${range[1]} of ${total} leads`,
+                        showSizeChanger: true,
+                        pageSizeOptions: ['50', '100', '200', '500', '1000'],
+                      }}
                       scroll={{ x: 1600 }}
                       size="small"
                     />
@@ -502,7 +517,12 @@ const CampaignAnalyticsPage = () => {
                   dataSource={filteredLeads}
                   rowKey="lead_id"
                   loading={sheetLeadsLoading}
-                  pagination={{ pageSize: 50, showTotal: t => `${t} leads` }}
+                  pagination={{ 
+                    pageSize: 100, 
+                    showTotal: (total, range) => `${range[0]}-${range[1]} of ${total} leads`,
+                    showSizeChanger: true,
+                    pageSizeOptions: ['50', '100', '200', '500', '1000'],
+                  }}
                   scroll={{ x: 1600 }}
                   size="small"
                 />
