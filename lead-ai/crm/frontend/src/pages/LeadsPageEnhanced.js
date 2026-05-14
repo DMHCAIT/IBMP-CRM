@@ -1124,6 +1124,14 @@ const LeadsPageEnhanced = () => {
                   </>
                 )}
                 {decayBadge}
+                {/* Show duplicate count badge if lead was imported multiple times */}
+                {r.duplicate_count > 0 && (
+                  <Tooltip title={`This lead was imported ${r.duplicate_count + 1} times (${r.duplicate_count} duplicate attempts)`}>
+                    <Tag color="warning" style={{ margin: '0 0 0 4px', fontSize: 10, cursor: 'help' }}>
+                      🔄 x{r.duplicate_count + 1}
+                    </Tag>
+                  </Tooltip>
+                )}
               </div>
               {editingPhone ? (
                 <Input

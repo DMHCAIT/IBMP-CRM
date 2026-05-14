@@ -334,7 +334,8 @@ function syncNewLeads() {
           var mapping = sheetRowMap[i];
           
           if (result.action === "duplicate") {
-            // Track duplicate leads with owner info
+            // Track duplicate leads with owner info and repeat count
+            var dupCount = result.duplicate_count || 1;
             duplicates.push({
               row: mapping.row,
               sheet: mapping.sheetName,
@@ -342,7 +343,8 @@ function syncNewLeads() {
               name: allLeads[i].full_name || "",
               existing_lead_id: result.existing_lead_id || "",
               existing_owner: result.existing_owner || "Unassigned",
-              existing_status: result.existing_status || ""
+              existing_status: result.existing_status || "",
+              repeat_count: dupCount
             });
             
             // ALWAYS write the existing Lead ID to prevent re-importing duplicates

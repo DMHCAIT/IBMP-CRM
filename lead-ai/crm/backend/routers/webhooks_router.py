@@ -221,19 +221,42 @@ async def sync_all_from_sheet(
                     
                     # Search for existing lead with same phone
                     try:
-                        existing_response = supabase_data.client.table('leads').select('lead_id,full_name,assigned_to,status,phone').ilike('phone', f'%{clean_phone[-10:]}%').limit(1).execute()
+                        existing_response = supabase_data.client.table('leads').select('lead_id,full_name,assigned_to,status,phone,duplicate_count,id').ilike('phone', f'%{clean_phone[-10:]}%').limit(1).execute()
                         
                         if existing_response.data and len(existing_response.data) > 0:
                             existing = existing_response.data[0]
+                            existing_lead_id = existing.get("lead_id")
+                            existing_internal_id = existing.get("id")
+                            current_dup_count = existing.get("duplicate_count", 0) or 0
+                            
+                            # Increment duplicate count to track how many times this lead was re-imported
+                            new_dup_count = current_dup_count + 1
+                            try:
+                                supabase_data.client.table('leads').update({
+                                    "duplicate_count": new_dup_count,
+                                    "last_duplicate_date": datetime.now(timezone.utc).isoformat()
+                                }).eq('lead_id', existing_lead_id).execute()
+                                
+                                # Log duplicate attempt as activity
+                                supabase_data.create_activity(
+                                    lead_id=existing_internal_id,
+                                    activity_type="duplicate_import",
+                                    description=f"Duplicate import attempt #{new_dup_count} from Google Sheets",
+                                    created_by="System"
+                                )
+                            except Exception as update_err:
+                                logger.warning(f"Failed to update duplicate count: {update_err}")
+                            
                             skipped += 1
                             results.append({
-                                "lead_id": existing.get("lead_id"),
+                                "lead_id": existing_lead_id,
                                 "action": "duplicate",
-                                "detail": f"Lead already exists with phone {phone}",
-                                "existing_lead_id": existing.get("lead_id"),
+                                "detail": f"Lead already exists with phone {phone} (imported {new_dup_count} times)",
+                                "existing_lead_id": existing_lead_id,
                                 "existing_name": existing.get("full_name", ""),
                                 "existing_owner": existing.get("assigned_to", "Unassigned"),
                                 "existing_status": existing.get("status", ""),
+                                "duplicate_count": new_dup_count,
                                 "duplicate": True
                             })
                             continue
