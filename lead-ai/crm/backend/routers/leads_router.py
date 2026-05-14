@@ -472,6 +472,14 @@ async def get_leads(
     updated_after:    Optional[datetime] = None,
     updated_before:   Optional[datetime] = None,
     search:           Optional[str] = None,
+    # Meta Ads filter parameters
+    campaign_id:      Optional[str] = None,
+    ad_id:            Optional[str] = None,
+    adset_id:         Optional[str] = None,
+    form_id:          Optional[str] = None,
+    campaign_name:    Optional[str] = None,
+    is_organic:       Optional[bool] = None,
+    external_id:      Optional[str] = None,
 ):
     """Paginated + filtered lead list — Supabase only. Counselors see only their own leads."""
     from main import LEAD_CACHE, LeadStatus, LeadSegment
@@ -527,6 +535,9 @@ async def get_leads(
         created_after=str(created_after), created_before=str(created_before),
         updated_on=updated_on, updated_from=str(updated_from), updated_to=str(updated_to),
         updated_after=str(updated_after), updated_before=str(updated_before),
+        # Meta Ads filters
+        campaign_id=campaign_id, ad_id=ad_id, adset_id=adset_id, form_id=form_id,
+        campaign_name=campaign_name, is_organic=is_organic, external_id=external_id,
     )
     _cache_key = "leads:" + hashlib.md5(
         json.dumps(_cp, sort_keys=True, default=str).encode()
@@ -562,6 +573,9 @@ async def get_leads(
             updated_before=updated_before.isoformat() if updated_before  else None,
             updated_from=updated_from.isoformat()     if updated_from    else None,
             updated_to=updated_to.isoformat()         if updated_to      else None,
+            # Meta Ads filters
+            campaign_id=campaign_id, ad_id=ad_id, adset_id=adset_id, form_id=form_id,
+            campaign_name=campaign_name, is_organic=is_organic, external_id=external_id,
         )
         LEAD_CACHE[_cache_key] = leads_data
         return leads_data

@@ -6,6 +6,7 @@ import {
   Drawer, Form, message, Row, Col, Card, Statistic, Avatar, Tooltip,
   Dropdown, Segmented, Empty, Typography, Divider, Checkbox,
   Radio, InputNumber, Alert, Modal, Upload, Steps, Badge, AutoComplete,
+  Switch,
 } from 'antd';
 import { COUNTRIES } from '../config/countries';
 import {
@@ -1014,7 +1015,7 @@ const LeadsPageEnhanced = () => {
   const getActionMenu = useCallback((record) => ({
     items: [
       { key: 'view', icon: <EyeOutlined />, label: 'View Details', onClick: () => navigate(`/leads/${record.lead_id}`) },
-      { key: 'edit', icon: <EditOutlined />, label: 'Edit', onClick: () => { form.setFieldsValue({ lead_id: record.lead_id, ...record, qualification: record.qualification || null, company: record.company || null, utm_source: record.utm_source || null, utm_medium: record.utm_medium || null, utm_campaign: record.utm_campaign || null, follow_up_date: record.follow_up_date ? parseDate(record.follow_up_date) : null }); setDrawerVisible(true); } },
+      { key: 'edit', icon: <EditOutlined />, label: 'Edit', onClick: () => { form.setFieldsValue({ lead_id: record.lead_id, ...record, qualification: record.qualification || null, company: record.company || null, utm_source: record.utm_source || null, utm_medium: record.utm_medium || null, utm_campaign: record.utm_campaign || null, follow_up_date: record.follow_up_date ? parseDate(record.follow_up_date) : null, campaign_id: record.campaign_id || null, ad_id: record.ad_id || null, adset_id: record.adset_id || null, form_id: record.form_id || null, campaign_name: record.campaign_name || null, ad_name: record.ad_name || null, adset_name: record.adset_name || null, form_name: record.form_name || null, is_organic: record.is_organic || false, external_id: record.external_id || null }); setDrawerVisible(true); } },
       { key: 'whatsapp', icon: <WhatsAppOutlined />, label: 'WhatsApp', onClick: () => window.open(`https://wa.me/${record.phone?.replace(/[^0-9]/g, '')}`) },
       { key: 'wa-template', icon: <span>📋</span>, label: 'Send Template', onClick: () => setTemplateLead(record) },
       { key: 'email', icon: <MailOutlined />, label: 'Email', onClick: () => { window.location.href = `mailto:${record.email}`; } },
@@ -2028,6 +2029,69 @@ const LeadsPageEnhanced = () => {
             <Col span={8}>
               <Form.Item name="utm_campaign" label="UTM Campaign">
                 <Input placeholder="mbbs_jan26…" />
+              </Form.Item>
+            </Col>
+          </Row>
+          
+          {/* Meta Ads Fields */}
+          <Divider orientation="left" style={{ margin: '8px 0' }}>Meta Ads Information</Divider>
+          <Row gutter={16}>
+            <Col span={12}>
+              <Form.Item name="campaign_id" label="Campaign ID">
+                <Input placeholder="Meta campaign ID" />
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item name="campaign_name" label="Campaign Name">
+                <Input placeholder="Campaign name" />
+              </Form.Item>
+            </Col>
+          </Row>
+          <Row gutter={16}>
+            <Col span={12}>
+              <Form.Item name="ad_id" label="Ad ID">
+                <Input placeholder="Meta ad ID" />
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item name="ad_name" label="Ad Name">
+                <Input placeholder="Ad name" />
+              </Form.Item>
+            </Col>
+          </Row>
+          <Row gutter={16}>
+            <Col span={12}>
+              <Form.Item name="adset_id" label="Adset ID">
+                <Input placeholder="Meta adset ID" />
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item name="adset_name" label="Adset Name">
+                <Input placeholder="Adset name" />
+              </Form.Item>
+            </Col>
+          </Row>
+          <Row gutter={16}>
+            <Col span={12}>
+              <Form.Item name="form_id" label="Form ID">
+                <Input placeholder="Meta form ID" />
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item name="form_name" label="Form Name">
+                <Input placeholder="Form name" />
+              </Form.Item>
+            </Col>
+          </Row>
+          <Row gutter={16}>
+            <Col span={12}>
+              <Form.Item name="external_id" label="External ID">
+                <Input placeholder="Sheet/external ID" />
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item name="is_organic" label="Is Organic" valuePropName="checked">
+                <Switch checkedChildren="Yes" unCheckedChildren="No" />
               </Form.Item>
             </Col>
           </Row>

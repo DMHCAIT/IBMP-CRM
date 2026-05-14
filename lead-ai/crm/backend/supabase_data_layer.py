@@ -148,6 +148,14 @@ class SupabaseDataLayer:
         updated_before: Optional[str] = None,
         updated_from: Optional[str] = None,
         updated_to: Optional[str] = None,
+        # Meta Ads filter parameters
+        campaign_id: Optional[str] = None,
+        ad_id: Optional[str] = None,
+        adset_id: Optional[str] = None,
+        form_id: Optional[str] = None,
+        campaign_name: Optional[str] = None,
+        is_organic: Optional[bool] = None,
+        external_id: Optional[str] = None,
     ) -> Dict[str, Any]:
         """Get leads with filters using Supabase"""
         try:
@@ -232,6 +240,22 @@ class SupabaseDataLayer:
                     query = query.or_(or_filter)
                 else:
                     query = query.ilike('qualification', f'%{_qualification.strip()}%')
+
+            # Meta Ads filters
+            if campaign_id:
+                query = query.eq('campaign_id', campaign_id.strip())
+            if ad_id:
+                query = query.eq('ad_id', ad_id.strip())
+            if adset_id:
+                query = query.eq('adset_id', adset_id.strip())
+            if form_id:
+                query = query.eq('form_id', form_id.strip())
+            if campaign_name:
+                query = query.ilike('campaign_name', f'%{campaign_name.strip()}%')
+            if is_organic is not None:
+                query = query.eq('is_organic', is_organic)
+            if external_id:
+                query = query.eq('external_id', external_id.strip())
 
             if min_score is not None:
                 query = query.gte('ai_score', min_score)
@@ -352,6 +376,7 @@ class SupabaseDataLayer:
             'campaign_name', 'campaign_medium', 'campaign_group',
             'lead_quality', 'lead_rating', 'city',
             'ad_name', 'adset_name', 'form_name', 'notes',
+            'campaign_id', 'ad_id', 'adset_id', 'form_id', 'is_organic', 'external_id',
         }
         try:
             response = self.client.table('leads').update(cleaned_data).eq('lead_id', lead_id).execute()
@@ -380,6 +405,7 @@ class SupabaseDataLayer:
         'lead_quality', 'lead_rating', 'city',
         'ad_name', 'adset_name', 'form_name',
         'notes',
+        'campaign_id', 'ad_id', 'adset_id', 'form_id', 'is_organic', 'external_id',
     }
 
     def _supabase_insert(self, table: str, payload: Dict[str, Any]) -> Dict[str, Any]:
