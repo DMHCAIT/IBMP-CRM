@@ -74,6 +74,13 @@ export function WebSocketProvider({ children }) {
 
   // ── Internal: open the connection ──────────────────────────────────────────
   const _connect = useCallback((tenantId, token) => {
+    // Check if WebSocket is explicitly disabled via environment variable
+    if (process.env.REACT_APP_DISABLE_WEBSOCKET === 'true') {
+      connectedRef.current = false;
+      setStatus('disconnected');
+      return;
+    }
+    
     if (connectedRef.current) return;
     connectedRef.current = true;
     tenantRef.current = tenantId || 'default';
