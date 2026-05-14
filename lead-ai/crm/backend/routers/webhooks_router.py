@@ -17,6 +17,7 @@ Security:
 import json
 import logging
 import os
+import re
 from datetime import datetime, timezone
 
 from fastapi import APIRouter, BackgroundTasks, Header, HTTPException, Request
@@ -193,6 +194,7 @@ async def sync_all_from_sheet(
 
     created  = 0
     updated  = 0
+    skipped  = 0
     results  = []
 
     for lead in leads[:500]:
@@ -211,11 +213,40 @@ async def sync_all_from_sheet(
                 updated += 1
                 results.append({"lead_id": lead_id, "action": "updated"})
             else:
+                # Check for duplicate by phone number before creating
+                phone = lead.get("phone")
+                if phone:
+                    # Clean phone number for search
+                    clean_phone = re.sub(r'[^\d+]', '', str(phone))
+                    
+                    # Search for existing lead with same phone
+                    try:
+                        existing_response = supabase_data.client.table('leads').select('lead_id,full_name,assigned_to,status,phone').ilike('phone', f'%{clean_phone[-10:]}%').limit(1).execute()
+                        
+                        if existing_response.data and len(existing_response.data) > 0:
+                            existing = existing_response.data[0]
+                            skipped += 1
+                            results.append({
+                                "lead_id": existing.get("lead_id"),
+                                "action": "duplicate",
+                                "detail": f"Lead already exists with phone {phone}",
+                                "existing_lead_id": existing.get("lead_id"),
+                                "existing_name": existing.get("full_name", ""),
+                                "existing_owner": existing.get("assigned_to", "Unassigned"),
+                                "existing_status": existing.get("status", ""),
+                                "duplicate": True
+                            })
+                            continue
+                    except Exception as dup_err:
+                        logger.warning(f"Duplicate check failed: {dup_err}")
+                        # Continue with creation if duplicate check fails
+                
                 # Generate lead_id in the same format as leads_router
                 _ts   = datetime.now(timezone.utc).strftime("%y%m%d%H%M%S")
                 _rand = _uuid.uuid4().hex[:8].upper()
                 lead["lead_id"] = f"LEAD{_ts}{_rand}"
-                lead.setdefault("status", "FRESH")
+                # Force Fresh status for all new leads from Google Sheets
+                lead["status"] = "FRESH"
                 lead.setdefault("source", "Google Sheet")
                 
                 # Preserve created_at from sheet if provided, otherwise use current time
@@ -234,8 +265,8 @@ async def sync_all_from_sheet(
             logger.warning(f"sync-all-from-sheet lead error: {msg}")
             results.append({"lead_id": lead_id or "", "action": "error", "detail": msg})
 
-    logger.info(f"sync-all-from-sheet: created={created} updated={updated} total={len(leads)}")
-    return {"created": created, "updated": updated, "total": len(leads), "results": results}
+    logger.info(f"sync-all-from-sheet: created={created} updated={updated} skipped={skipped} total={len(leads)}")
+    return {"created": created, "updated": updated, "skipped": skipped, "total": len(leads), "results": results}
 
 
 # ── Dev-only test endpoint ────────────────────────────────────────────────────

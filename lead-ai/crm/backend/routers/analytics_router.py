@@ -291,7 +291,7 @@ async def campaign_list():
 
 
 @router.get("/api/analytics/campaigns/leads")
-async def campaign_leads(campaign_name: Optional[str] = None, medium: Optional[str] = None, limit: int = 2000):
+async def campaign_leads(campaign_name: Optional[str] = None, medium: Optional[str] = None, limit: int = 70000):
     """
     All individual leads that have campaign data (synced from Google Sheet).
     Returns full campaign detail fields per lead — powers the Sheet Leads tab.
@@ -311,13 +311,8 @@ async def campaign_leads(campaign_name: Optional[str] = None, medium: Optional[s
         response = query.execute()
         leads = response.data or []
 
-        # Include all leads that have ANY campaign field OR came from Meta sources
-        META_SOURCES = {"Facebook", "Instagram"}
-        result = [
-            l for l in leads
-            if l.get("campaign_name") or l.get("ad_name") or l.get("source") in META_SOURCES
-        ]
-        return result
+        # Return all leads - no filtering
+        return leads
     except Exception as exc:
         logger.error(f"Campaign leads error: {exc}")
         return []

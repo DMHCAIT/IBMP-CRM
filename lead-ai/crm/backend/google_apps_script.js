@@ -84,9 +84,10 @@ var COLUMN_MAP = {
   "platform":                               "campaign_medium",
   "Is Organic":                             "is_organic",
   "is_organic":                             "is_organic",      // Meta sheet column
-  "Status":                                 "status",
-  "Lead Status":                            "status",
-  "lead_status":                            "status",          // Meta sheet column
+  // Status columns removed - all new leads imported as Fresh
+  // "Status":                                 "status",
+  // "Lead Status":                            "status",
+  // "lead_status":                            "status",          // Meta sheet column
 
   // Course / Program Interest
   "Course":                                 "course_interested",
@@ -297,16 +298,47 @@ function syncNewLeads() {
     Logger.log("CRM response [" + statusCode + "]: " + body);
 
     if (statusCode >= 200 && statusCode < 300) {
-      // Write back the assigned Lead IDs
+      // Write back the assigned Lead IDs and log duplicates
       var parsed = JSON.parse(body);
+      var duplicates = [];
+      
       if (parsed.results && parsed.results.length > 0) {
         for (var i = 0; i < parsed.results.length && i < sheetRowMap.length; i++) {
           var result = parsed.results[i];
           var mapping = sheetRowMap[i];
           
-          if (result.lead_id && mapping.leadIdColIdx >= 0) {
+          if (result.action === "duplicate") {
+            // Track duplicate leads with owner info
+            duplicates.push({
+              row: mapping.row,
+              sheet: mapping.sheetName,
+              phone: allLeads[i].phone || "",
+              name: allLeads[i].full_name || "",
+              existing_lead_id: result.existing_lead_id || "",
+              existing_owner: result.existing_owner || "Unassigned",
+              existing_status: result.existing_status || ""
+            });
+            
+            // Optionally write the existing Lead ID to the sheet
+            if (result.existing_lead_id && mapping.leadIdColIdx >= 0) {
+              mapping.sheet.getRange(mapping.row, mapping.leadIdColIdx + 1).setValue(result.existing_lead_id);
+            }
+          } else if (result.lead_id && mapping.leadIdColIdx >= 0) {
+            // Write new Lead ID
             mapping.sheet.getRange(mapping.row, mapping.leadIdColIdx + 1).setValue(result.lead_id);
           }
+        }
+      }
+      
+      // Log summary
+      Logger.log("Sync complete: " + parsed.created + " created, " + parsed.updated + " updated, " + (parsed.skipped || 0) + " duplicates");
+      
+      // Log duplicate details
+      if (duplicates.length > 0) {
+        Logger.log("=== DUPLICATE LEADS FOUND ===");
+        for (var d = 0; d < duplicates.length; d++) {
+          var dup = duplicates[d];
+          Logger.log("Row " + dup.row + " (" + dup.sheet + "): " + dup.name + " (" + dup.phone + ") - Already exists as " + dup.existing_lead_id + " (Owner: " + dup.existing_owner + ", Status: " + dup.existing_status + ")");
         }
       }
     } else {
@@ -336,8 +368,10 @@ function syncAllLeads() {
   var totalSent    = 0;
   var totalCreated = 0;
   var totalUpdated = 0;
+  var totalSkipped = 0;
   var totalFailed  = 0;
   var errors       = [];
+  var allDuplicates = [];
 
   for (var s = 0; s < sheets.length; s++) {
     var sheet   = sheets[s];
@@ -396,13 +430,32 @@ function syncAllLeads() {
           totalSent    += chunk.length;
           totalCreated += (parsed.created || 0);
           totalUpdated += (parsed.updated || 0);
+          totalSkipped += (parsed.skipped || 0);
 
-          // Write back Lead IDs for newly created leads
+          // Write back Lead IDs and track duplicates
           if (parsed.results && leadIdColIdx >= 0) {
             for (var j = 0; j < parsed.results.length; j++) {
               var res = parsed.results[j];
-              if (res.lead_id && !chunk[j].lead_id) {
-                var sheetRow = rowMap[i + j];
+              var sheetRow = rowMap[i + j];
+              
+              if (res.action === "duplicate") {
+                // Track duplicate with owner info
+                allDuplicates.push({
+                  row: sheetRow,
+                  sheet: sheet.getName(),
+                  phone: chunk[j].phone || "",
+                  name: chunk[j].full_name || "",
+                  existing_lead_id: res.existing_lead_id || "",
+                  existing_owner: res.existing_owner || "Unassigned",
+                  existing_status: res.existing_status || ""
+                });
+                
+                // Write existing Lead ID to sheet
+                if (res.existing_lead_id) {
+                  sheet.getRange(sheetRow, leadIdColIdx + 1).setValue(res.existing_lead_id);
+                }
+              } else if (res.lead_id && !chunk[j].lead_id) {
+                // Write new Lead ID
                 sheet.getRange(sheetRow, leadIdColIdx + 1).setValue(res.lead_id);
               }
             }
@@ -423,10 +476,25 @@ function syncAllLeads() {
   }
 
   var msg = "Sync complete!\n\n"
-    + "Sent:    " + totalSent    + "\n"
-    + "Created: " + totalCreated + "\n"
-    + "Updated: " + totalUpdated + "\n"
-    + "Failed:  " + totalFailed  + "\n";
+    + "Sent:       " + totalSent    + "\n"
+    + "Created:    " + totalCreated + "\n"
+    + "Updated:    " + totalUpdated + "\n"
+    + "Duplicates: " + totalSkipped + "\n"
+    + "Failed:     " + totalFailed  + "\n";
+  
+  if (allDuplicates.length > 0) {
+    msg += "\n=== DUPLICATE LEADS ===\n";
+    for (var d = 0; d < Math.min(allDuplicates.length, 10); d++) {
+      var dup = allDuplicates[d];
+      msg += "Row " + dup.row + " (" + dup.sheet + "): " + dup.name + " (" + dup.phone + ")\n"
+           + "  → Already exists as " + dup.existing_lead_id 
+           + " (Owner: " + dup.existing_owner + ", Status: " + dup.existing_status + ")\n";
+    }
+    if (allDuplicates.length > 10) {
+      msg += "  ... and " + (allDuplicates.length - 10) + " more duplicates\n";
+    }
+  }
+  
   if (errors.length > 0) {
     msg += "\nErrors:\n" + errors.slice(0, 5).join("\n");
   }

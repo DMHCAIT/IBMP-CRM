@@ -31,7 +31,7 @@ const campaignAPI = {
     return api.get(`/api/analytics/campaigns/leads?${params.toString()}`);
   },
   getCampaignDetail: (campaignName) => api.get(`/api/analytics/campaigns/${encodeURIComponent(campaignName)}`),
-  fetchFromSheet:   () => api.get('/api/analytics/campaigns/leads?limit=5000'),
+  fetchFromSheet:   () => api.get('/api/analytics/campaigns/leads?limit=70000'),
 };
 
 const COLORS = ['#6366f1', '#10b981', '#f59e0b', '#ef4444', '#3b82f6', '#8b5cf6', '#ec4899', '#14b8a6'];
