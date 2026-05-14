@@ -28,6 +28,7 @@ const campaignAPI = {
     const params = new URLSearchParams();
     if (campaignName) params.append('campaign_name', campaignName);
     if (medium)       params.append('medium', medium);
+    params.append('limit', '70000');
     return api.get(`/api/analytics/campaigns/leads?${params.toString()}`);
   },
   getCampaignDetail: (campaignName) => api.get(`/api/analytics/campaigns/${encodeURIComponent(campaignName)}`),
@@ -49,15 +50,23 @@ const CampaignAnalyticsPage = () => {
   const [leadsSearch, setLeadsSearch]           = useState('');
   const [sheetFetching, setSheetFetching]       = useState(false);
   const [sheetFetchedLeads, setSheetFetchedLeads] = useState(null); // null = not fetched yet
+  const [syncMessage, setSyncMessage]           = useState(''); // Show sync instructions
 
   const handleFetchFromSheet = async () => {
     setSheetFetching(true);
     try {
       const res = await campaignAPI.fetchFromSheet();
       const leads = Array.isArray(res.data) ? res.data : (res.data?.leads || []);
+      
       setSheetFetchedLeads(leads);
       setActiveTab('sheet');
-      notification.success({ message: `Loaded ${leads.length} sheet leads from CRM` });
+      setSyncMessage('Showing all leads from database. To import new leads from Google Sheet and detect duplicates, run "IBMP CRM → Sync New Leads" in your sheet.');
+      
+      notification.success({ 
+        message: `Loaded ${leads.length} leads from database`,
+        description: 'To sync new leads and detect duplicates, use Google Apps Script in your sheet',
+        duration: 5
+      });
     } catch (err) {
       notification.error({ message: 'Failed to fetch from sheet', description: err?.response?.data?.detail || err.message });
     } finally {
@@ -421,19 +430,42 @@ const CampaignAnalyticsPage = () => {
                 {sheetFetchedLeads === null ? (
                   <div style={{ textAlign: 'center', padding: 60, color: '#9ca3af' }}>
                     <SyncOutlined style={{ fontSize: 40, marginBottom: 16, color: '#10b981' }} />
-                    <div style={{ fontSize: 16, fontWeight: 600 }}>Click "Fetch from Sheet" to load synced leads</div>
-                    <div style={{ marginTop: 8, fontSize: 13 }}>First sync from your Google Sheet using the "IBMP CRM → Sync All Leads to CRM" menu in the sheet</div>
+                    <div style={{ fontSize: 16, fontWeight: 600 }}>Load leads from Google Sheet sync</div>
+                    <div style={{ marginTop: 8, fontSize: 13, maxWidth: 500, margin: '8px auto' }}>
+                      <strong>How duplicate detection works:</strong><br/>
+                      1. Open your Google Sheet → IBMP CRM menu → "Sync New Leads"<br/>
+                      2. System checks phone numbers for duplicates<br/>
+                      3. New leads are created, duplicates are skipped<br/>
+                      4. Execution log shows: "Already exists as LEAD-XXX (Owner: Name, Status: Fresh)"<br/>
+                      5. Click button below to view synced leads
+                    </div>
                     <Button type="primary" icon={<SyncOutlined />} style={{ marginTop: 20, background: '#10b981', borderColor: '#10b981' }}
                       loading={sheetFetching} onClick={handleFetchFromSheet}>
                       Fetch from Sheet
                     </Button>
                   </div>
                 ) : (
-                  <Table
-                    columns={sheetLeadColumns}
-                    dataSource={sheetFetchedLeads}
-                    rowKey={(r, i) => r.meta_lead_id || r.phone || i}
-                    pagination={{ pageSize: 50, showTotal: t => `${t} leads` }}
+                  <>
+                    {syncMessage && (
+                      <div style={{ 
+                        marginBottom: 16, padding: 12, background: '#eff6ff', 
+                        borderRadius: 8, border: '1px solid #bfdbfe',
+                        display: 'flex', alignItems: 'center', gap: 8 
+                      }}>
+                        <SyncOutlined style={{ color: '#3b82f6', fontSize: 16 }} />
+                        <span style={{ fontSize: 13, color: '#1e40af' }}>{syncMessage}</span>
+                      </div>
+                    )}
+                    <Table
+                      columns={sheetLeadColumns}
+                      dataSource={sheetFetchedLeads}
+                      rowKey={(r, i) => r.meta_lead_id || r.phone || i}
+                      pagination={{ pageSize: 50, showTotal: t => `${t} leads` }}
+                      scroll={{ x: 1600 }}
+                      size="small"
+                    />
+                  </>
+                )
                     scroll={{ x: 1600 }}
                     size="small"
                   />
