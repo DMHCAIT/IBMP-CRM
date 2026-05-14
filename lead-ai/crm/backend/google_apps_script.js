@@ -242,6 +242,15 @@ function syncNewLeads() {
       
       var headers = data[0];
       var leadIdColIdx = headers.indexOf(LEAD_ID_COLUMN);
+      
+      // If "Lead ID" column doesn't exist, create it
+      if (leadIdColIdx < 0) {
+        Logger.log("Creating 'Lead ID' column in sheet: " + sheetName);
+        leadIdColIdx = headers.length;  // Add at the end
+        sheet.getRange(1, leadIdColIdx + 1).setValue(LEAD_ID_COLUMN);
+        // Refresh headers array
+        headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+      }
 
       for (var r = 1; r < data.length; r++) {
         var row    = data[r];
@@ -336,13 +345,15 @@ function syncNewLeads() {
               existing_status: result.existing_status || ""
             });
             
-            // Optionally write the existing Lead ID to the sheet
+            // ALWAYS write the existing Lead ID to prevent re-importing duplicates
             if (result.existing_lead_id && mapping.leadIdColIdx >= 0) {
               mapping.sheet.getRange(mapping.row, mapping.leadIdColIdx + 1).setValue(result.existing_lead_id);
+              Logger.log("Wrote duplicate Lead ID " + result.existing_lead_id + " to row " + mapping.row + " in sheet " + mapping.sheetName);
             }
           } else if (result.lead_id && mapping.leadIdColIdx >= 0) {
             // Write new Lead ID
             mapping.sheet.getRange(mapping.row, mapping.leadIdColIdx + 1).setValue(result.lead_id);
+            Logger.log("Wrote new Lead ID " + result.lead_id + " to row " + mapping.row + " in sheet " + mapping.sheetName);
           }
         }
       }
@@ -397,6 +408,16 @@ function syncAllLeads() {
 
     var headers      = data[0];
     var leadIdColIdx = headers.indexOf(LEAD_ID_COLUMN);
+    
+    // If "Lead ID" column doesn't exist, create it
+    if (leadIdColIdx < 0) {
+      Logger.log("Creating 'Lead ID' column in sheet: " + sheet.getName());
+      leadIdColIdx = headers.length;  // Add at the end
+      sheet.getRange(1, leadIdColIdx + 1).setValue(LEAD_ID_COLUMN);
+      // Refresh headers array
+      headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+    }
+    
     var batch        = [];
     var rowMap       = [];  // maps batch index → sheet row number (1-indexed)
 
@@ -485,13 +506,15 @@ function syncAllLeads() {
                   existing_status: res.existing_status || ""
                 });
                 
-                // Write existing Lead ID to sheet
+                // ALWAYS write existing Lead ID to prevent re-importing duplicates
                 if (res.existing_lead_id) {
                   sheet.getRange(sheetRow, leadIdColIdx + 1).setValue(res.existing_lead_id);
+                  Logger.log("Wrote duplicate Lead ID " + res.existing_lead_id + " to row " + sheetRow + " in sheet " + sheet.getName());
                 }
               } else if (res.lead_id && !chunk[j].lead_id) {
                 // Write new Lead ID
                 sheet.getRange(sheetRow, leadIdColIdx + 1).setValue(res.lead_id);
+                Logger.log("Wrote new Lead ID " + res.lead_id + " to row " + sheetRow + " in sheet " + sheet.getName());
               }
             }
           }

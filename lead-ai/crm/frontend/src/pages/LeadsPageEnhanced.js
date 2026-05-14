@@ -146,26 +146,30 @@ const parseSpreadsheet = (data, isBinary) => {
 
 const REQUIRED_COLS = ['full_name', 'phone'];
 const STATUS_OPTIONS = ['Fresh', 'Follow Up', 'Warm', 'Hot', 'Not Interested', 'Not Answering', 'Enrolled', 'Junk'];
-const NOTE_CALL_STAGE_OPTIONS = ['2 Call', '3 Call', '4 Call'];
+const NOTE_CALL_STAGE_OPTIONS = ['1 Call', '2 Call', '3 Call', '4 Call'];
 
 const LEAD_NOTE_PLAYBOOK = {
   'Not Connected (No answer / Switched off / Not Reachable / Busy)': {
     'Need second call': {
+      '1 Call': 'Need second call',
       '2 Call': 'Ask me to call evening',
       '3 Call': 'Busy in OPD, call later',
       '4 Call': 'No response after multiple follow-ups',
     },
     'Number Busy': {
+      '1 Call': 'Number Busy',
       '2 Call': 'Call tomorrow',
       '3 Call': 'In surgery / duty',
       '4 Call': 'Mark as unresponsive',
     },
     'Switched Off': {
+      '1 Call': 'Switched Off',
       '2 Call': 'Try later',
       '3 Call': 'Phone still switched off',
       '4 Call': 'Dead lead',
     },
     'Not Reachable': {
+      '1 Call': 'Not Reachable',
       '2 Call': 'Network issue',
       '3 Call': 'WhatsApp sent, no reply',
       '4 Call': 'Invalid number',
@@ -173,48 +177,57 @@ const LEAD_NOTE_PLAYBOOK = {
   },
   'Call Back Requested': {
     'Time option': {
+      '1 Call': 'Time option',
       '2 Call': 'Ask me to call tomorrow',
       '3 Call': 'Call after duty hours',
       '4 Call': 'Final callback attempted',
     },
     'Busy Schedule': {
+      '1 Call': 'Busy Schedule',
       '2 Call': 'Busy with patients',
       '3 Call': 'Call on weekend',
       '4 Call': 'No further response',
     },
     'Parent Requested Call': {
+      '1 Call': 'Parent Requested Call',
       '2 Call': 'Discuss with family first',
       '3 Call': 'Family discussion pending',
       '4 Call': 'Final decision awaited',
     },
   },
-  Interested: {
+  'Interested': {
     'Need Details': {
+      '1 Call': 'Need Details',
       '2 Call': 'Spoke to Doctor, details sent, need follow up',
       '3 Call': 'Reviewed brochure, interested',
       '4 Call': 'Ready for admission discussion',
     },
     'Fee Discussion Pending': {
+      '1 Call': 'Fee Discussion Pending',
       '2 Call': 'Fee is high, will think and get back',
       '3 Call': 'Need EMI / discount',
       '4 Call': 'Payment discussion started',
     },
     'Demo Requested': {
+      '1 Call': 'Demo Requested',
       '2 Call': 'Negotiation in progress',
       '3 Call': 'Demo attended, interested',
       '4 Call': 'Wants admission process',
     },
     'Comparing Price': {
+      '1 Call': 'Comparing Price',
       '2 Call': 'Comparing with competitors',
       '3 Call': 'Asked about placement & USP',
       '4 Call': 'Final comparison stage',
     },
     'Family Approval Pending': {
+      '1 Call': 'Family Approval Pending',
       '2 Call': 'Will discuss with family and get back',
       '3 Call': 'Family interested but checking fees',
       '4 Call': 'Family approved/rejected',
     },
     'Will Enroll Soon': {
+      '1 Call': 'Will Enroll Soon',
       '2 Call': 'Will enroll soon',
       '3 Call': 'Asked for payment link',
       '4 Call': 'Admission confirmed',
@@ -222,28 +235,89 @@ const LEAD_NOTE_PLAYBOOK = {
   },
   'Future Prospect': {
     'Not Decided': {
+      '1 Call': 'Not Decided',
       '2 Call': 'Not yet decided',
       '3 Call': 'Need more time',
       '4 Call': 'Shifted to nurturing',
     },
     'After Exams': {
+      '1 Call': 'After Exams',
       '2 Call': 'Will plan next year',
       '3 Call': 'Busy in PG preparation',
       '4 Call': 'Reconnect after exams',
     },
     'Just Inquiry': {
+      '1 Call': 'Just Inquiry',
       '2 Call': 'Preparing for PG NEET',
       '3 Call': 'No immediate plan',
       '4 Call': 'Cold lead',
     },
     'Financial Issue': {
+      '1 Call': 'Financial Issue',
       '2 Call': 'Busy in exams, will plan later',
       '3 Call': 'Waiting for salary/funds',
       '4 Call': 'Budget not possible',
     },
     'Discuss with Family': {
+      '1 Call': 'Discuss with Family',
       '2 Call': 'Interested, will enroll shortly',
       '3 Call': 'Family discussion ongoing',
+      '4 Call': 'Waiting for final update',
+    },
+    'After Relocation': {
+      '1 Call': 'After Relocation',
+      '2 Call': 'Looking for different course',
+      '3 Call': 'Relocating currently',
+      '4 Call': 'Reconnect later',
+    },
+    'After Job Switch': {
+      '1 Call': 'After Job Switch',
+      '2 Call': 'Not interested currently',
+      '3 Call': 'Will reconnect after job change',
+      '4 Call': 'No update received',
+    },
+  },
+  'Not Interested': {
+    'Not Relevant / Course Not Suitable': {
+      '1 Call': 'Not Relevant / Course Not Suitable',
+      '2 Call': 'Do not disturb',
+      '3 Call': 'Course mismatch confirmed',
+      '4 Call': 'Closed lost lead',
+    },
+    'Wrong Expectation from Course': {
+      '1 Call': 'Wrong Expectation from Course',
+      '2 Call': 'Looking for only clinical training',
+      '3 Call': 'Wants government certification only',
+      '4 Call': 'Not matching expectations',
+    },
+    'Other Academy': {
+      '1 Call': 'Other Academy',
+      '2 Call': 'Looking for only online course',
+      '3 Call': 'Joined competitor institute',
+      '4 Call': 'Lost to competitor',
+    },
+    'Price Issue': {
+      '1 Call': 'Price Issue',
+      '2 Call': 'Waiting for funds',
+      '3 Call': 'Budget issue unresolved',
+      '4 Call': 'Permanently lost',
+    },
+    'Other Field / No Health Care / Invalid Number': {
+      '1 Call': 'Other Field / No Health Care / Invalid Number',
+      '2 Call': 'Dropped the plan',
+      '3 Call': 'Fake inquiry',
+      '4 Call': 'Closed permanently',
+    },
+  },
+  'Spam': {
+    'Other Field / No Health Care / Invalid Number': {
+      '1 Call': 'Other Field / No Health Care / Invalid Number',
+      '2 Call': 'Dropped the plan',
+      '3 Call': 'Fake inquiry',
+      '4 Call': 'Closed permanently',
+    },
+  },
+};
       '4 Call': 'Waiting for final update',
     },
     'After Relocation': {
@@ -1978,7 +2052,7 @@ const LeadsPageEnhanced = () => {
                   <Select
                     placeholder="Select main category"
                     allowClear
-                    onChange={() => form.setFieldsValue({ note_sub_status: undefined, note_call_stage: '2 Call' })}
+                    onChange={() => form.setFieldsValue({ note_sub_status: undefined, note_call_stage: '1 Call' })}
                     options={noteMainCategoryOptions.map(v => ({ label: v, value: v }))}
                   />
                 </Form.Item>
@@ -1989,13 +2063,13 @@ const LeadsPageEnhanced = () => {
                     placeholder="Select status"
                     allowClear
                     disabled={!noteMainCategory}
-                    onChange={() => form.setFieldValue('note_call_stage', '2 Call')}
+                    onChange={() => form.setFieldValue('note_call_stage', '1 Call')}
                     options={noteSubStatusOptions.map(v => ({ label: v, value: v }))}
                   />
                 </Form.Item>
               </Col>
               <Col span={24}>
-                <Form.Item name="note_call_stage" label="Call Stage" initialValue="2 Call" style={{ marginBottom: 8 }}>
+                <Form.Item name="note_call_stage" label="Call Stage" initialValue="1 Call" style={{ marginBottom: 8 }}>
                   <Select
                     placeholder="Select call stage"
                     allowClear
