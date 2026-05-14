@@ -644,18 +644,18 @@ const LeadsPageEnhanced = () => {
 
   const updateMutation = useMutation({
     mutationFn: ({ leadId, data }) => leadsAPI.update(leadId, data),
-    onSuccess: (updatedLead, { leadId }) => {
+    onSuccess: (response, { leadId }) => {
+      // leadsAPI.update returns an Axios response — extract .data to get the actual lead object
+      const updatedLead = response?.data || response;
       message.success('Lead updated!');
       // Immediately patch the cached row with the ACTUAL data returned from the API.
-      // This ensures the UI reflects exactly what the backend stored (including any
-      // normalization, validation, or transformation the backend applied).
       queryClient.setQueriesData(
         { queryKey: ['leads'], exact: false },
         (old) => {
           if (!old?.leads) return old;
           const patched = old.leads.map(l =>
             l.lead_id === leadId
-              ? { ...l, ...updatedLead }  // Use actual API response, not just changedFields
+              ? { ...l, ...updatedLead }
               : l
           );
           // Re-sort: most recently updated lead floats to the top
@@ -2322,10 +2322,10 @@ const LeadsPageEnhanced = () => {
               emi_start:     vals.emi_start  ? vals.emi_start.toISOString()  : null,
               emi_next:      vals.emi_next   ? vals.emi_next.toISOString()   : null,
             });
-            // 1. Update status to Enrolled + set potential_revenue = fee_total
+            // 1. Update status to Enrolled + set expected_revenue = fee_total
             updateMutation.mutate({
               leadId: enrollTarget.leadId,
-              data: { status: 'Enrolled', potential_revenue: vals.fee_total },
+              data: { status: 'Enrolled', expected_revenue: vals.fee_total },
             });
             // 2. Save payment note
             leadsAPI.addNote(enrollTarget.leadId, { content: payContent, channel: 'payment' })

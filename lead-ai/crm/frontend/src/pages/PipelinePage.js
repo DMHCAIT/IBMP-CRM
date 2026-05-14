@@ -23,8 +23,9 @@ const PipelinePage = () => {
   const [selectedUser, setSelectedUser] = useState('all');
 
   const { data: leadsData, isLoading, refetch } = useQuery({
-    queryKey: ['leads'],
-    queryFn: () => leadsAPI.getAll().then(res => res.data)
+    queryKey: ['leads-pipeline'],
+    queryFn: () => leadsAPI.getAll({ limit: 70000, skip: 0 }).then(res => res.data),
+    staleTime: 5 * 60 * 1000,
   });
 
   // Pipeline stages configuration

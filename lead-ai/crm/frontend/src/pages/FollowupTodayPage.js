@@ -59,7 +59,7 @@ function QuickActionModal({ lead, open, onClose, onDone }) {
     if (nextDate) updates.follow_up_date = nextDate.toISOString();
     updateMutation.mutate({ leadId: lead.lead_id, data: updates });
     if (note.trim()) {
-      await addNoteMutation.mutateAsync({ leadId: lead.id, content: note });
+      await addNoteMutation.mutateAsync({ leadId: lead.lead_id, content: note });
     }
   };
 
@@ -317,7 +317,7 @@ export default function FollowupTodayPage() {
             <Empty description="No overdue follow-ups 🎉" image={Empty.PRESENTED_IMAGE_SIMPLE} />
           ) : (
             overdue.map(l => (
-              <LeadRow key={l.id} lead={l} isOverdue
+              <LeadRow key={l.lead_id} lead={l} isOverdue
                 onQuickAction={setActionLead}
                 onChat={setChatLead}
               />
@@ -343,7 +343,7 @@ export default function FollowupTodayPage() {
             <Empty description="No follow-ups scheduled for today" image={Empty.PRESENTED_IMAGE_SIMPLE} />
           ) : (
             today.map(l => (
-              <LeadRow key={l.id} lead={l} isOverdue={false}
+              <LeadRow key={l.lead_id} lead={l} isOverdue={false}
                 onQuickAction={setActionLead}
                 onChat={setChatLead}
               />

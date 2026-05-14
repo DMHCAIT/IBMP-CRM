@@ -61,14 +61,14 @@ const KPI = ({ label, value, color = '#2563eb', icon: Icon, sub }) => (
 // ─────────────────────────────────────────────────────────────────────────────
 const MarketingDetail = ({ leads, meta }) => {
   const srcMap = {};
-  leads.forEach(l => { const s = l.lead_source || 'Unknown'; srcMap[s] = (srcMap[s] || 0) + 1; });
+  leads.forEach(l => { const s = l.source || 'Unknown'; srcMap[s] = (srcMap[s] || 0) + 1; });
   const sources = Object.entries(srcMap)
-    .map(([src, cnt]) => ({ src, cnt, enr: leads.filter(l => l.lead_source === src && l.status === 'Enrolled').length }))
+    .map(([src, cnt]) => ({ src, cnt, enr: leads.filter(l => l.source === src && l.status === 'Enrolled').length }))
     .sort((a, b) => b.cnt - a.cnt);
 
   const newToday = leads.filter(l => new Date(l.created_at).toDateString() === new Date().toDateString()).length;
   const enrolled = leads.filter(l => l.status === 'Enrolled').length;
-  const totalRev = leads.filter(l => l.status === 'Enrolled').reduce((s, l) => s + (l.potential_revenue || 0), 0);
+  const totalRev = leads.filter(l => l.status === 'Enrolled').reduce((s, l) => s + (l.expected_revenue || 0), 0);
 
   const courseMap = {};
   leads.forEach(l => { if (l.course_interested) courseMap[l.course_interested] = (courseMap[l.course_interested] || 0) + 1; });
@@ -206,7 +206,7 @@ const AcademicDetail = ({ leads, meta }) => {
     const c = l.course_interested || 'Not specified';
     courseMap[c] = courseMap[c] || { count: 0, revenue: 0 };
     courseMap[c].count++;
-    courseMap[c].revenue += l.potential_revenue || 0;
+    courseMap[c].revenue += l.expected_revenue || 0;
   });
   const topCourses = Object.entries(courseMap).sort((a,b)=>b[1].count-a[1].count).slice(0,5);
 
@@ -214,7 +214,7 @@ const AcademicDetail = ({ leads, meta }) => {
   students.forEach(l => { if(l.country) countryMap[l.country] = (countryMap[l.country]||0)+1; });
   const countries = Object.entries(countryMap).sort((a,b)=>b[1]-a[1]).slice(0,5);
 
-  const totalRev = students.reduce((s,l) => s+(l.potential_revenue||0), 0);
+  const totalRev = students.reduce((s,l) => s+(l.expected_revenue||0), 0);
 
   return (
     <div style={{ display:'flex', flexDirection:'column', gap:16 }}>
@@ -264,27 +264,27 @@ const AcademicDetail = ({ leads, meta }) => {
 
 const AccountsDetail = ({ leads, meta }) => {
   const enrolled = leads.filter(l => l.status === 'Enrolled');
-  const totalRev = enrolled.reduce((s,l) => s + (l.potential_revenue||0), 0);
+  const totalRev = enrolled.reduce((s,l) => s + (l.expected_revenue||0), 0);
   const avgRev   = enrolled.length ? totalRev / enrolled.length : 0;
 
   const courseRev = {};
   enrolled.forEach(l => {
     const c = l.course_interested || 'Unknown';
-    courseRev[c] = (courseRev[c] || 0) + (l.potential_revenue || 0);
+    courseRev[c] = (courseRev[c] || 0) + (l.expected_revenue || 0);
   });
   const topCourseRev = Object.entries(courseRev).sort((a,b)=>b[1]-a[1]).slice(0,5);
 
   const countryRev = {};
   enrolled.forEach(l => {
     const c = l.country || 'Unknown';
-    countryRev[c] = (countryRev[c] || 0) + (l.potential_revenue || 0);
+    countryRev[c] = (countryRev[c] || 0) + (l.expected_revenue || 0);
   });
   const topCountryRev = Object.entries(countryRev).sort((a,b)=>b[1]-a[1]).slice(0,4);
 
   const monthly = {};
   enrolled.forEach(l => {
     const m = new Date(l.updated_at || l.created_at).toLocaleDateString('en-IN',{month:'short',year:'2-digit'});
-    monthly[m] = (monthly[m] || 0) + (l.potential_revenue || 0);
+    monthly[m] = (monthly[m] || 0) + (l.expected_revenue || 0);
   });
 
   return (
@@ -584,7 +584,7 @@ const DeptCard = ({ dept, metrics, onNavigate, onDetails }) => {
 // ─────────────────────────────────────────────────────────────────────────────
 const CompanyKPIs = ({ leads, users }) => {
   const enrolled   = leads.filter(l => l.status === 'Enrolled').length;
-  const totalRev   = leads.filter(l => l.status === 'Enrolled').reduce((s,l) => s+(l.potential_revenue||0), 0);
+  const totalRev   = leads.filter(l => l.status === 'Enrolled').reduce((s,l) => s+(l.expected_revenue||0), 0);
   const hot        = leads.filter(l => l.status === 'Hot').length;
   const newToday   = leads.filter(l => new Date(l.created_at).toDateString() === new Date().toDateString()).length;
   const convRate   = leads.length ? ((enrolled/leads.length)*100).toFixed(1) : 0;
@@ -704,7 +704,7 @@ export default function CEOCommandCenter() {
 
   const { data: leadsResp, isLoading: leadsLoading, refetch: refetchLeads } = useQuery({
     queryKey: ['ceo-leads'],
-    queryFn: () => leadsAPI.getAll({ limit: 2000 }).then(r => r.data),
+    queryFn: () => leadsAPI.getAll({ limit: 70000, skip: 0 }).then(r => r.data),
     staleTime: 2 * 60 * 1000,
   });
   const { data: usersResp, isLoading: usersLoading, refetch: refetchUsers } = useQuery({
@@ -722,7 +722,7 @@ export default function CEOCommandCenter() {
     // Academic dept: enrolled students only (courses — no university/visa)
     const newToday  = leads.filter(l => new Date(l.created_at).toDateString() === new Date().toDateString());
     const followups = leads.filter(l => l.next_followup && new Date(l.next_followup).toDateString() === new Date().toDateString());
-    const totalRev  = enrolled.reduce((s,l) => s+(l.potential_revenue||0), 0);
+    const totalRev  = enrolled.reduce((s,l) => s+(l.expected_revenue||0), 0);
 
     const deptCounts = {};
     users.forEach(u => { const d=getDepartment(u.role); deptCounts[d]=(deptCounts[d]||0)+1; });
@@ -745,7 +745,7 @@ export default function CEOCommandCenter() {
       [DEPARTMENTS.ACADEMIC]: {
         enrolled:  enrolled.length,
         courses:   [...new Set(enrolled.map(l=>l.course_interested).filter(Boolean))].length,
-        revenue:   fmtL(enrolled.reduce((s,l)=>s+(l.potential_revenue||0),0)),
+        revenue:   fmtL(enrolled.reduce((s,l)=>s+(l.expected_revenue||0),0)),
         teamSize:  deptCounts[DEPARTMENTS.ACADEMIC] || 0,
         health:    enrolled.length > 0 ? 'success' : 'warning',
       },

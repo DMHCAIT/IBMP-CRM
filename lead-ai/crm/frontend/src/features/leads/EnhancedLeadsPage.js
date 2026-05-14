@@ -257,7 +257,7 @@ const EnhancedLeadsPage = () => {
                 cursor: 'pointer',
                 transition: 'background-color 0.1s ease',
               }}
-              onClick={() => navigate(`/leads/${lead.id}`)}
+              onClick={() => navigate(`/leads/${lead.lead_id}`)}
             >
               {/* Lead Info */}
               <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -323,7 +323,7 @@ const EnhancedLeadsPage = () => {
               {/* Actions */}
               <div style={{ display: 'flex', gap: 4, alignItems: 'center' }} onClick={e => e.stopPropagation()}>
                 {[
-                  { icon: Eye,           title: 'View',    fn: () => navigate(`/leads/${lead.id}`) },
+                  { icon: Eye,           title: 'View',    fn: () => navigate(`/leads/${lead.lead_id}`) },
                   { icon: Mail,          title: 'Email',   fn: () => {} },
                   { icon: MessageCircle, title: 'WhatsApp',fn: () => {} },
                 ].map(({ icon: Icon, title, fn }) => (

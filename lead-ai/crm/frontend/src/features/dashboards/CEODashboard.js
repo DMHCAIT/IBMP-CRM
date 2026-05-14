@@ -47,7 +47,7 @@ const CEODashboard = () => {
 
   const { data: leadsResp, isLoading: leadsLoading } = useQuery({
     queryKey: ['leads-all-ceo'],
-    queryFn: () => leadsAPI.getAll({ limit: 1000 }).then(r => r.data),
+    queryFn: () => leadsAPI.getAll({ limit: 70000, skip: 0 }).then(r => r.data),
   });
 
   const { data: usersResp } = useQuery({
@@ -61,13 +61,13 @@ const CEODashboard = () => {
   const enrolled    = leads.filter(l => l.status === 'Enrolled').length;
   const totalLeads  = leads.length;
   const convRate    = totalLeads ? ((enrolled / totalLeads) * 100).toFixed(1) : 0;
-  const totalRev    = leads.reduce((s, l) => s + (l.potential_revenue || 0), 0);
+  const totalRev    = leads.reduce((s, l) => s + (l.expected_revenue || 0), 0);
   const hotLeads    = leads.filter(l => l.status === 'Hot').length;
   const pendingFups = leads.filter(l => l.status === 'Follow-up').length;
 
   // Department breakdown
   const deptBreakdown = [
-    { dept: 'Marketing', leads: leads.filter(l => l.lead_source?.toLowerCase().includes('campaign') || l.lead_source?.toLowerCase().includes('social')).length, color: '#d97706' },
+    { dept: 'Marketing', leads: leads.filter(l => l.source?.toLowerCase().includes('campaign') || l.source?.toLowerCase().includes('social')).length, color: '#d97706' },
     { dept: 'Sales', leads: leads.filter(l => ['New', 'Contacted', 'Hot', 'Warm', 'Follow-up'].includes(l.status)).length, color: '#2563eb' },
     { dept: 'Academic', leads: leads.filter(l => ['Document Submitted', 'University Applied', 'Enrolled'].includes(l.status)).length, color: '#059669' },
     { dept: 'Accounts', leads: enrolled, color: '#dc2626' },

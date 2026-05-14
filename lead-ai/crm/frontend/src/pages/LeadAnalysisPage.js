@@ -74,10 +74,12 @@ const LeadAnalysisPage = () => {
   const [searchText, setSearchText] = useState('');
   const [activeTab, setActiveTab] = useState('overview');
 
-  // Fetch data
+  // Fetch data — use a dedicated query key so this doesn't clash with the
+  // paginated leads table cache, and fetch up to 70k rows for analysis.
   const { data: leadsData, isLoading: leadsLoading, refetch: refetchLeads } = useQuery({
-    queryKey: ['leads'],
-    queryFn: () => leadsAPI.getAll({ limit: 2000 }).then(res => res.data)
+    queryKey: ['leads-analysis'],
+    queryFn: () => leadsAPI.getAll({ limit: 70000, skip: 0 }).then(res => res.data),
+    staleTime: 5 * 60 * 1000,
   });
 
   const { data: usersData, isLoading: usersLoading } = useQuery({
@@ -114,11 +116,11 @@ const LeadAnalysisPage = () => {
       const leadDate = dayjs(lead.created_at);
       const matchesDate = leadDate.isAfter(dateRange[0]) && leadDate.isBefore(dateRange[1]);
       const matchesCountry = selectedCountry === 'all' || lead.country === selectedCountry;
-      const matchesCourse = selectedCourse === 'all' || lead.course === selectedCourse;
+      const matchesCourse = selectedCourse === 'all' || lead.course_interested === selectedCourse;
       const matchesStatus = selectedStatus === 'all' || lead.status === selectedStatus;
       const matchesUser = selectedUser === 'all' || lead.assigned_to === selectedUser;
-      const matchesSearch = !searchText || 
-        lead.name?.toLowerCase().includes(searchText.toLowerCase()) ||
+      const matchesSearch = !searchText ||
+        lead.full_name?.toLowerCase().includes(searchText.toLowerCase()) ||
         lead.email?.toLowerCase().includes(searchText.toLowerCase()) ||
         lead.phone?.includes(searchText);
 
@@ -209,8 +211,8 @@ const LeadAnalysisPage = () => {
   const courseDistribution = useMemo(() => {
     const distribution = {};
     filteredLeads.forEach(lead => {
-      if (lead.course) {
-        distribution[lead.course] = (distribution[lead.course] || 0) + 1;
+      if (lead.course_interested) {
+        distribution[lead.course_interested] = (distribution[lead.course_interested] || 0) + 1;
       }
     });
     return Object.entries(distribution)
@@ -227,10 +229,10 @@ const LeadAnalysisPage = () => {
       if (!lead.assigned_to) return;
       
       if (!performance[lead.assigned_to]) {
-        const user = users.find(u => u.id === lead.assigned_to);
+        const user = users.find(u => u.full_name === lead.assigned_to);
         performance[lead.assigned_to] = {
           userId: lead.assigned_to,
-          userName: user?.name || 'Unknown',
+          userName: user?.full_name || lead.assigned_to || 'Unknown',
           userRole: user?.role || 'Unknown',
           totalLeads: 0,
           convertedLeads: 0,
@@ -252,7 +254,7 @@ const LeadAnalysisPage = () => {
 
       if (lead.status === 'Enrolled') {
         perf.convertedLeads++;
-        perf.totalRevenue += lead.potential_revenue || 0;
+        perf.totalRevenue += lead.expected_revenue || 0;
       }
       if (['Not Interested', 'Not Answering', 'Junk'].includes(lead.status)) {
         perf.lostLeads++;
@@ -280,7 +282,7 @@ const LeadAnalysisPage = () => {
     return filteredLeads.map(lead => ({
       age: calculateLeadAge(lead.created_at),
       daysSinceUpdate: calculateDaysSinceUpdate(lead.updated_at),
-      name: lead.name,
+      name: lead.full_name,
       status: lead.status,
       aiScore: lead.ai_score || 0
     }));
@@ -305,8 +307,8 @@ const LeadAnalysisPage = () => {
   const columns = [
     {
       title: 'Lead Name',
-      dataIndex: 'name',
-      key: 'name',
+      dataIndex: 'full_name',
+      key: 'full_name',
       fixed: 'left',
       width: 180,
       render: (text, record) => (
@@ -369,8 +371,8 @@ const LeadAnalysisPage = () => {
     },
     {
       title: 'Course',
-      dataIndex: 'course',
-      key: 'course',
+      dataIndex: 'course_interested',
+      key: 'course_interested',
       width: 200,
       ellipsis: true,
       render: (text) => (
@@ -395,17 +397,17 @@ const LeadAnalysisPage = () => {
       dataIndex: 'assigned_to',
       key: 'assigned_to',
       width: 180,
-      render: (userId) => {
-        const user = users.find(u => u.id === userId);
-        if (!user) return <Text type="secondary">Unassigned</Text>;
+      render: (assignedTo) => {
+        if (!assignedTo) return <Text type="secondary">Unassigned</Text>;
+        const user = users.find(u => u.full_name === assignedTo);
         return (
           <Space>
             <Avatar size="small" style={{ backgroundColor: '#722ed1' }}>
-              {user.name?.charAt(0)?.toUpperCase()}
+              {(user?.full_name || assignedTo)?.charAt(0)?.toUpperCase()}
             </Avatar>
             <div>
-              <div style={{ fontWeight: 500 }}>{user.name}</div>
-              <Text type="secondary" style={{ fontSize: 12 }}>{user.role}</Text>
+              <div style={{ fontWeight: 500 }}>{user?.full_name || assignedTo}</div>
+              <Text type="secondary" style={{ fontSize: 12 }}>{user?.role}</Text>
             </div>
           </Space>
         );
@@ -413,13 +415,13 @@ const LeadAnalysisPage = () => {
     },
     {
       title: 'Revenue',
-      dataIndex: 'potential_revenue',
+      dataIndex: 'expected_revenue',
       key: 'revenue',
       width: 120,
-      sorter: (a, b) => (a.potential_revenue || 0) - (b.potential_revenue || 0),
+      sorter: (a, b) => (a.expected_revenue || 0) - (b.expected_revenue || 0),
       render: (value) => (
         <Text strong style={{ color: '#52c41a' }}>
-          ${value?.toLocaleString() || '0'}
+          ₹{value?.toLocaleString() || '0'}
         </Text>
       )
     },
@@ -550,7 +552,7 @@ const LeadAnalysisPage = () => {
       sorter: (a, b) => a.totalRevenue - b.totalRevenue,
       render: (value) => (
         <Text strong style={{ color: '#52c41a' }}>
-          ${value?.toLocaleString() || '0'}
+          ₹{value?.toLocaleString() || '0'}
         </Text>
       )
     }
@@ -622,7 +624,7 @@ const LeadAnalysisPage = () => {
             >
               <Option value="all">All Courses</Option>
               {courses.map(course => (
-                <Option key={course.id} value={course.name}>{course.name}</Option>
+                <Option key={course.id} value={course.course_name}>{course.course_name}</Option>
               ))}
             </Select>
           </Col>
@@ -649,7 +651,7 @@ const LeadAnalysisPage = () => {
             >
               <Option value="all">All Users</Option>
               {users.map(user => (
-                <Option key={user.id} value={user.id}>{user.name}</Option>
+                <Option key={user.id} value={user.full_name}>{user.full_name}</Option>
               ))}
             </Select>
           </Col>

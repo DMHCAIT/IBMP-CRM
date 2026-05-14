@@ -44,7 +44,7 @@ const EmployeeModal = ({ open, onClose, onSaved, editUser }) => {
     },
     onSuccess: () => {
       message.success(editUser ? 'Employee updated' : 'Employee created');
-      queryClient.invalidateQueries(['users-hr-page']);
+      queryClient.invalidateQueries({ queryKey: ['users-hr-page'] });
       onSaved?.();
       onClose();
     },
@@ -133,7 +133,7 @@ const HRPage = () => {
 
   const { data: leadsResp } = useQuery({
     queryKey: ['leads-hr-perf'],
-    queryFn: () => leadsAPI.getAll({ limit: 2000 }).then(r => r.data),
+    queryFn: () => leadsAPI.getAll({ limit: 70000, skip: 0 }).then(r => r.data),
   });
 
   const users = usersResp?.users || usersResp || [];
@@ -301,7 +301,7 @@ const HRPage = () => {
         open={modalOpen}
         onClose={() => setModalOpen(false)}
         editUser={editUser}
-        onSaved={() => queryClient.invalidateQueries(['users-hr-page'])}
+        onSaved={() => queryClient.invalidateQueries({ queryKey: ['users-hr-page'] })}
       />
     </div>
   );

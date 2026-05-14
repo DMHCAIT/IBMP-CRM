@@ -90,7 +90,7 @@ const AnalyticsPage = () => {
   // These are lightweight columns only — no heavy AI text fields.
   const { data: leads } = useQuery({
     queryKey: ['analytics-leads-sample'],
-    queryFn: () => leadsAPI.getAll({ limit: 2000, skip: 0 }).then(res => res.data?.leads || []),
+    queryFn: () => leadsAPI.getAll({ limit: 70000, skip: 0 }).then(res => res.data?.leads || []),
     staleTime: 5 * 60 * 1000,  // charts tolerate slightly stale data
   });
 

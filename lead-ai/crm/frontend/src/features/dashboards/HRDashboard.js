@@ -13,7 +13,7 @@ const HRDashboard = () => {
 
   const { data: leadsResp } = useQuery({
     queryKey: ['leads-hr'],
-    queryFn: () => leadsAPI.getAll({ limit: 2000 }).then(r => r.data),
+    queryFn: () => leadsAPI.getAll({ limit: 70000, skip: 0 }).then(r => r.data),
   });
 
   const users  = usersResp?.users || usersResp || [];

@@ -51,7 +51,7 @@ const StudentModal = ({ lead, open, onClose }) => {
       onCancel={onClose}
       width={640}
       footer={
-        <Button type="primary" onClick={() => { onClose(); navigate(`/leads/${lead.id}`); }}>
+        <Button type="primary" onClick={() => { onClose(); navigate(`/leads/${lead.lead_id}`); }}>
           Open Full Profile
         </Button>
       }
@@ -78,7 +78,7 @@ const StudentModal = ({ lead, open, onClose }) => {
             { label: 'Course', value: lead.course_interested },
             { label: 'Country', value: lead.country },
             { label: 'Counselor', value: lead.assigned_to },
-            { label: 'Revenue', value: lead.potential_revenue ? `₹${lead.potential_revenue.toLocaleString()}` : '—' },
+            { label: 'Revenue', value: lead.expected_revenue ? `₹${lead.expected_revenue.toLocaleString()}` : '—' },
           ].map(f => (
             <Col key={f.label} span={12}>
               <div style={{ padding: '10px 14px', background: '#f8fafc', borderRadius: 8 }}>
@@ -160,7 +160,7 @@ const LmsModal = ({ lead, open, onClose }) => {
       portal: vals.portal || '',
       created_at: new Date().toISOString(),
     });
-    lmsMutation.mutate({ leadId: lead.id, content });
+    lmsMutation.mutate({ leadId: lead.lead_id, content });
   };
 
   if (!lead) return null;
@@ -224,7 +224,7 @@ const AcademicPage = () => {
 
   const { data: leadsResp, isLoading } = useQuery({
     queryKey: ['leads-academic-page'],
-    queryFn: () => leadsAPI.getAll({ status: 'Enrolled', limit: 2000 }).then(r => r.data),
+    queryFn: () => leadsAPI.getAll({ status: 'Enrolled', limit: 70000, skip: 0 }).then(r => r.data),
   });
 
   const students = leadsResp?.leads || (Array.isArray(leadsResp) ? leadsResp : []);
@@ -251,7 +251,7 @@ const AcademicPage = () => {
   const topCourses = Object.entries(courseMap).sort((a, b) => b[1] - a[1]);
 
   // Revenue totals
-  const totalRevenue = students.reduce((sum, s) => sum + (s.potential_revenue || 0), 0);
+  const totalRevenue = students.reduce((sum, s) => sum + (s.expected_revenue || 0), 0);
   const avgRevenue   = students.length ? totalRevenue / students.length : 0;
 
   // Country breakdown
@@ -306,10 +306,10 @@ const AcademicPage = () => {
     },
     {
       title: 'Revenue',
-      dataIndex: 'potential_revenue',
+      dataIndex: 'expected_revenue',
       key: 'revenue',
       render: v => v ? <span style={{ color: '#059669', fontWeight: 600 }}>₹{v.toLocaleString()}</span> : '—',
-      sorter: (a, b) => (a.potential_revenue || 0) - (b.potential_revenue || 0),
+      sorter: (a, b) => (a.expected_revenue || 0) - (b.expected_revenue || 0),
       defaultSortOrder: 'descend',
     },
     {
@@ -360,7 +360,7 @@ const AcademicPage = () => {
           >
             LMS
           </Button>
-          <Button size="small" onClick={() => navigate(`/leads/${s.id}`)}>
+          <Button size="small" onClick={() => navigate(`/leads/${s.lead_id}`)}>
             Edit
           </Button>
         </div>

@@ -56,7 +56,7 @@ const PaymentsPage = () => {
 
   const { data: leadsResp, isLoading } = useQuery({
     queryKey: ['enrolled-leads-payments'],
-    queryFn: () => leadsAPI.getAll({ status: 'Enrolled', limit: 2000 }).then(r => r.data),
+    queryFn: () => leadsAPI.getAll({ status: 'Enrolled', limit: 70000, skip: 0 }).then(r => r.data),
     staleTime: 2 * 60 * 1000,
   });
 
@@ -69,13 +69,13 @@ const PaymentsPage = () => {
     return {
       ...s,
       pay,
-      fee_total:    pay?.fee_total    || s.potential_revenue || 0,
+      fee_total:    pay?.fee_total    || s.expected_revenue || 0,
       fee_collected:pay?.fee_collected || 0,
       emi_amount:   pay?.emi_amount   || 0,
       emi_count:    pay?.emi_count    || 0,
       emi_next:     pay?.emi_next     || null,
       emi_start:    pay?.emi_start    || null,
-      balance_due:  (pay?.fee_total || s.potential_revenue || 0) - (pay?.fee_collected || 0),
+      balance_due:  (pay?.fee_total || s.expected_revenue || 0) - (pay?.fee_collected || 0),
       emiStatus,
     };
   }), [students]);
@@ -245,7 +245,7 @@ const PaymentsPage = () => {
       key: 'action',
       width: 80,
       render: (_, s) => (
-        <Button size="small" onClick={() => navigate(`/leads/${s.id}`)}>
+        <Button size="small" onClick={() => navigate(`/leads/${s.lead_id}`)}>
           View
         </Button>
       ),

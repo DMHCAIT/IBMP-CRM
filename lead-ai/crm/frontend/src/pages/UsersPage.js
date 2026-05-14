@@ -104,8 +104,9 @@ const UsersPage = () => {
 
   // Fetch leads
   const { data: leadsData } = useQuery({
-    queryKey: ['leads'],
-    queryFn: () => leadsAPI.getAll({ limit: 500 }).then(res => res.data)
+    queryKey: ['leads-users-page'],
+    queryFn: () => leadsAPI.getAll({ limit: 70000, skip: 0 }).then(res => res.data),
+    staleTime: 5 * 60 * 1000,
   });
   
   const leads = leadsData?.leads || [];

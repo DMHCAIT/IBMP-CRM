@@ -12,12 +12,12 @@ import { leadsAPI } from '../../api/api';
 const AcademicDashboard = () => {
   const { data: leadsResp, isLoading } = useQuery({
     queryKey: ['leads-academic-dash'],
-    queryFn: () => leadsAPI.getAll({ status: 'Enrolled', limit: 2000 }).then(r => r.data),
+    queryFn: () => leadsAPI.getAll({ status: 'Enrolled', limit: 70000, skip: 0 }).then(r => r.data),
   });
 
   const { data: allLeadsResp } = useQuery({
     queryKey: ['leads-all-for-academic'],
-    queryFn: () => leadsAPI.getAll({ limit: 2000 }).then(r => r.data),
+    queryFn: () => leadsAPI.getAll({ limit: 70000, skip: 0 }).then(r => r.data),
   });
 
   const students = leadsResp?.leads || (Array.isArray(leadsResp) ? leadsResp : []);
@@ -29,7 +29,7 @@ const AcademicDashboard = () => {
     const c = s.course_interested || 'Not specified';
     courseMap[c] = courseMap[c] || { count: 0, revenue: 0 };
     courseMap[c].count++;
-    courseMap[c].revenue += s.potential_revenue || 0;
+    courseMap[c].revenue += s.expected_revenue || 0;
   });
   const topCourses = Object.entries(courseMap)
     .map(([course, data]) => ({ course, ...data }))
@@ -40,7 +40,7 @@ const AcademicDashboard = () => {
   students.forEach(s => { if (s.country) countryMap[s.country] = (countryMap[s.country] || 0) + 1; });
   const topCountries = Object.entries(countryMap).sort((a, b) => b[1] - a[1]).slice(0, 5);
 
-  const totalRevenue = students.reduce((s, l) => s + (l.potential_revenue || 0), 0);
+  const totalRevenue = students.reduce((s, l) => s + (l.expected_revenue || 0), 0);
   const avgRevenue   = students.length ? totalRevenue / students.length : 0;
 
   // Counselor who enrolled the most
@@ -49,7 +49,7 @@ const AcademicDashboard = () => {
     if (s.assigned_to) {
       counselorMap[s.assigned_to] = counselorMap[s.assigned_to] || { name: s.assigned_to, enrolled: 0, revenue: 0 };
       counselorMap[s.assigned_to].enrolled++;
-      counselorMap[s.assigned_to].revenue += s.potential_revenue || 0;
+      counselorMap[s.assigned_to].revenue += s.expected_revenue || 0;
     }
   });
   const topCounselors = Object.values(counselorMap).sort((a, b) => b.enrolled - a.enrolled).slice(0, 5);
@@ -190,7 +190,7 @@ const AcademicDashboard = () => {
             { title: 'Student', dataIndex: 'full_name', key: 'name', render: t => <span style={{ fontWeight: 500 }}>{t}</span> },
             { title: 'Course', dataIndex: 'course_interested', key: 'course', render: t => <Tag color="purple">{t || '—'}</Tag> },
             { title: 'Country', dataIndex: 'country', key: 'country', render: t => t || '—' },
-            { title: 'Revenue', dataIndex: 'potential_revenue', key: 'rev', render: v => v ? <span style={{ color: '#059669', fontWeight: 600 }}>₹{v.toLocaleString()}</span> : '—' },
+            { title: 'Revenue', dataIndex: 'expected_revenue', key: 'rev', render: v => v ? <span style={{ color: '#059669', fontWeight: 600 }}>₹{v.toLocaleString()}</span> : '—' },
             { title: 'Counselor', dataIndex: 'assigned_to', key: 'counselor', render: t => t || '—' },
           ]}
         />

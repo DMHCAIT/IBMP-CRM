@@ -23,7 +23,7 @@ const FinanceDashboard = () => {
   const { data: recentLeads = [] } = useQuery({
     queryKey: ['finance-recent-leads'],
     queryFn: () => leadsAPI.getAll({ status: 'Enrolled', limit: 10 }).then(res => {
-      const data = Array.isArray(res.data) ? res.data : res.data?.data || [];
+      const data = Array.isArray(res.data) ? res.data : res.data?.leads || [];
       return data.slice(0, 10);
     }),
   });
@@ -79,7 +79,7 @@ const FinanceDashboard = () => {
     },
     {
       title: 'Revenue',
-      dataIndex: 'potential_revenue',
+      dataIndex: 'expected_revenue',
       key: 'revenue',
       render: (value) => (
         <span style={{ color: '#10b981', fontWeight: 500 }}>

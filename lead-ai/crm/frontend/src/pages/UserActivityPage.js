@@ -49,7 +49,7 @@ export default function UserActivityPage() {
   // ── Data fetching ──────────────────────────────────────────────────────────
   const { data: leadsResp, isLoading: leadsLoading, refetch: refetchLeads } = useQuery({
     queryKey: ['user-activity-leads'],
-    queryFn: () => leadsAPI.getAll({ limit: 5000 }).then(r => r.data),
+    queryFn: () => leadsAPI.getAll({ limit: 70000, skip: 0 }).then(r => r.data),
     staleTime: 60_000,
   });
 

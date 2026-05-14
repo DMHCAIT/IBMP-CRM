@@ -333,6 +333,29 @@ async def campaign_leads(campaign_name: Optional[str] = None, medium: Optional[s
         return []
 
 
+@router.get("/api/analytics/campaigns/compare")
+async def campaign_compare(a: Optional[str] = None, b: Optional[str] = None):
+    """Compare two campaigns side-by-side.
+    NOTE: must be registered BEFORE /{campaign_name} to avoid being swallowed by the wildcard.
+    """
+    if not a or not b:
+        raise HTTPException(status_code=400, detail="Both 'a' and 'b' campaign names are required")
+    results = []
+    for name in (a, b):
+        # Use .range() to bypass 1000 row limit
+        resp = supabase_data.client.table("leads").select("status,actual_revenue,ai_score").eq("campaign_name", name).range(0, 99999).execute()
+        ldata = resp.data or []
+        total = len(ldata)
+        conversions = sum(1 for l in ldata if l.get("status") == "Enrolled")
+        results.append({
+            "campaign": name, "total_leads": total,
+            "conversions": conversions,
+            "conversion_rate": round(conversions / max(total, 1) * 100, 2),
+            "total_revenue": round(sum(l.get("actual_revenue", 0) or 0 for l in ldata), 2),
+        })
+    return {"comparison": results}
+
+
 @router.get("/api/analytics/campaigns/{campaign_name}")
 async def campaign_detail(campaign_name: str):
     """Single campaign detail with time-series breakdown."""
@@ -368,27 +391,6 @@ async def campaign_detail(campaign_name: str):
     except Exception as exc:
         logger.error(f"Campaign detail error: {exc}")
         raise HTTPException(status_code=500, detail=str(exc))
-
-
-@router.get("/api/analytics/campaigns/compare")
-async def campaign_compare(a: Optional[str] = None, b: Optional[str] = None):
-    """Compare two campaigns side-by-side."""
-    if not a or not b:
-        raise HTTPException(status_code=400, detail="Both 'a' and 'b' campaign names are required")
-    results = []
-    for name in (a, b):
-        # Use .range() to bypass 1000 row limit
-        resp = supabase_data.client.table("leads").select("status,actual_revenue,ai_score").eq("campaign_name", name).range(0, 99999).execute()
-        ldata = resp.data or []
-        total = len(ldata)
-        conversions = sum(1 for l in ldata if l.get("status") == "Enrolled")
-        results.append({
-            "campaign": name, "total_leads": total,
-            "conversions": conversions,
-            "conversion_rate": round(conversions / max(total, 1) * 100, 2),
-            "total_revenue": round(sum(l.get("actual_revenue", 0) or 0 for l in ldata), 2),
-        })
-    return {"comparison": results}
 
 
 @router.get("/api/analytics/call-timing")
@@ -546,20 +548,99 @@ async def get_revenue_trend(days: int = 30):
 @router.get("/api/admin/lead-update-activity")
 async def get_lead_update_activity(
     days: int = 7,
-    assigned_to: Optional[str] = None,
-    limit: int = 200,
+    date: Optional[str] = None,   # specific day YYYY-MM-DD (takes priority over days)
 ):
-    """Lead update activity — shows which counselors updated leads and when."""
+    """Lead update activity — grouped by user+date, with per-lead event details.
+    Returns { rows: [{ date, user, leads_updated, total_events, action_summary, leads }] }
+    """
     try:
-        cutoff = (datetime.utcnow() - timedelta(days=days)).isoformat()
-        query  = supabase_data.client.table("activities").select("*").gte("created_at", cutoff).order("created_at", desc=True).limit(limit)
-        if assigned_to:
-            query = query.eq("created_by", assigned_to)
-        response = query.execute()
-        return response.data or []
+        if date:
+            q = (
+                supabase_data.client.table("activities")
+                .select("*")
+                .gte("created_at", f"{date}T00:00:00")
+                .lte("created_at", f"{date}T23:59:59")
+            )
+        else:
+            cutoff = (datetime.utcnow() - timedelta(days=days)).isoformat()
+            q = supabase_data.client.table("activities").select("*").gte("created_at", cutoff)
+
+        q = q.order("created_at", desc=True).range(0, 49999)
+        response = q.execute()
+        activities = response.data or []
+
+        # Collect unique lead_ids to fetch lead metadata
+        lead_ids = list({a["lead_id"] for a in activities if a.get("lead_id")})
+        leads_meta: dict = {}
+        batch_size = 500
+        for i in range(0, len(lead_ids), batch_size):
+            batch = lead_ids[i : i + batch_size]
+            lr = (
+                supabase_data.client.table("leads")
+                .select("lead_id,full_name,status,course_interested")
+                .in_("lead_id", batch)
+                .execute()
+            )
+            for l in (lr.data or []):
+                leads_meta[l["lead_id"]] = l
+
+        # Group activities by date (YYYY-MM-DD) → user
+        groups: dict = defaultdict(lambda: defaultdict(list))
+        for act in activities:
+            if not act.get("created_at") or not act.get("created_by"):
+                continue
+            day  = act["created_at"][:10]
+            user = act["created_by"]
+            groups[day][user].append(act)
+
+        rows = []
+        for day in sorted(groups.keys(), reverse=True):
+            for user, events in groups[day].items():
+                # Group events per lead
+                lead_events: dict = defaultdict(list)
+                for ev in events:
+                    lid = ev.get("lead_id", "")
+                    if lid:
+                        lead_events[lid].append({
+                            "type": ev.get("type", "update"),
+                            "ts":   ev.get("created_at", ""),
+                            "description": ev.get("description") or ev.get("content") or "",
+                        })
+
+                # Action summary
+                action_counts: dict = defaultdict(int)
+                for ev in events:
+                    action_counts[ev.get("type", "update")] += 1
+                action_summary = [
+                    {"type": t, "count": c}
+                    for t, c in sorted(action_counts.items(), key=lambda x: -x[1])
+                ]
+
+                # Leads array
+                leads_list = [
+                    {
+                        "lead_id":          lid,
+                        "full_name":        leads_meta.get(lid, {}).get("full_name", ""),
+                        "status":           leads_meta.get(lid, {}).get("status", ""),
+                        "course_interested": leads_meta.get(lid, {}).get("course_interested", ""),
+                        "events":           evs,
+                    }
+                    for lid, evs in lead_events.items()
+                ]
+
+                rows.append({
+                    "date":          day,
+                    "user":          user,
+                    "leads_updated": len(lead_events),
+                    "total_events":  len(events),
+                    "action_summary": action_summary,
+                    "leads":         leads_list,
+                })
+
+        return {"rows": rows}
     except Exception as exc:
         logger.error(f"Lead update activity error: {exc}")
-        return []
+        return {"rows": []}
 
 
 # ── Admin Analytics (detailed) ────────────────────────────────────────────────
@@ -624,35 +705,95 @@ async def get_conversion_time():
 
 @router.get("/api/admin/source-analytics")
 async def get_source_analytics():
-    """Lead source performance — volume, conversion rate, revenue per source."""
+    """Lead source performance — volume, conversion rate, revenue per source.
+    Returns { sources, campaigns, summary } so the AnalyticsPage charts work correctly.
+    """
     try:
-        # Use .range() to bypass 1000 row limit
-        response = supabase_data.client.table("leads").select("source,status,actual_revenue,expected_revenue,ai_score").range(0, 99999).execute()
+        # Use .range() to bypass 1000 row limit; include ai_segment for hot_leads count
+        response = supabase_data.client.table("leads").select(
+            "source,status,actual_revenue,expected_revenue,ai_score,ai_segment,campaign_name"
+        ).range(0, 99999).execute()
         leads = response.data or []
 
         sources: dict = {}
+        campaigns_map: dict = {}
+
         for lead in leads:
             src = lead.get("source") or "Unknown"
             if src not in sources:
-                sources[src] = {"source": src, "leads": 0, "enrolled": 0, "revenue": 0, "expected_revenue": 0, "scores": []}
-            sources[src]["leads"] += 1
+                sources[src] = {
+                    "source": src, "leads": 0, "enrolled": 0, "hot": 0,
+                    "revenue": 0, "expected_revenue": 0, "scores": [],
+                }
+            s = sources[src]
+            s["leads"] += 1
+            if (lead.get("ai_segment") or "").lower() == "hot":
+                s["hot"] += 1
             if lead.get("status") == "Enrolled":
-                sources[src]["enrolled"] += 1
-                sources[src]["revenue"] += lead.get("actual_revenue", 0) or 0
-            sources[src]["expected_revenue"] += lead.get("expected_revenue", 0) or 0
+                s["enrolled"] += 1
+                s["revenue"] += lead.get("actual_revenue", 0) or 0
+            s["expected_revenue"] += lead.get("expected_revenue", 0) or 0
             if lead.get("ai_score"):
-                sources[src]["scores"].append(lead["ai_score"])
+                s["scores"].append(lead["ai_score"])
+
+            # Campaign aggregation
+            cname = lead.get("campaign_name") or ""
+            if cname:
+                if cname not in campaigns_map:
+                    campaigns_map[cname] = {"label": cname, "total_leads": 0, "enrolled": 0, "revenue": 0, "scores": []}
+                c = campaigns_map[cname]
+                c["total_leads"] += 1
+                if lead.get("status") == "Enrolled":
+                    c["enrolled"] += 1
+                    c["revenue"] += lead.get("actual_revenue", 0) or 0
+                if lead.get("ai_score"):
+                    c["scores"].append(lead["ai_score"])
 
         result = []
         for src, s in sources.items():
+            total = max(s["leads"], 1)
             avg_score = round(sum(s["scores"]) / len(s["scores"]), 1) if s["scores"] else 0
-            result.append({"source": src, "total_leads": s["leads"], "enrolled": s["enrolled"],
-                           "conversion_rate": round(s["enrolled"] / max(s["leads"], 1) * 100, 2),
-                           "total_revenue": round(s["revenue"], 2),
-                           "expected_revenue": round(s["expected_revenue"], 2),
-                           "avg_ai_score": avg_score})
+            avg_rev = round(s["revenue"] / max(s["enrolled"], 1), 2) if s["enrolled"] else 0
+            # ROI score: composite of conversion rate (70%) + avg AI score normalized (30%)
+            conv_pct = round(s["enrolled"] / total * 100, 2)
+            roi_score = round(conv_pct * 0.7 + (avg_score / 100) * 30, 1)
+            result.append({
+                "source": src,
+                "total_leads": s["leads"],
+                "enrolled": s["enrolled"],
+                "hot_leads": s["hot"],
+                "conversion_rate": conv_pct,
+                "total_revenue": round(s["revenue"], 2),
+                "expected_revenue": round(s["expected_revenue"], 2),
+                "avg_revenue": avg_rev,
+                "avg_ai_score": avg_score,
+                "roi_score": roi_score,
+            })
         result.sort(key=lambda x: x["total_leads"], reverse=True)
-        return result
+
+        campaigns_list = []
+        for c in campaigns_map.values():
+            avg_score = round(sum(c["scores"]) / len(c["scores"]), 1) if c["scores"] else 0
+            conv_rate = round(c["enrolled"] / max(c["total_leads"], 1) * 100, 2)
+            campaigns_list.append({
+                "label":           c["label"],
+                "total_leads":     c["total_leads"],
+                "enrolled":        c["enrolled"],
+                "conversion_rate": conv_rate,
+                "total_revenue":   round(c["revenue"], 2),
+                "avg_ai_score":    avg_score,
+            })
+        campaigns_list.sort(key=lambda x: x["total_leads"], reverse=True)
+
+        total_leads   = len(leads)
+        total_enrolled = sum(s["enrolled"] for s in sources.values())
+        summary = {
+            "total_leads":              total_leads,
+            "total_enrolled":           total_enrolled,
+            "overall_conversion_rate":  round(total_enrolled / max(total_leads, 1) * 100, 2),
+        }
+
+        return {"sources": result, "campaigns": campaigns_list, "summary": summary}
     except Exception as exc:
         logger.error(f"Source analytics error: {exc}")
-        return []
+        return {"sources": [], "campaigns": [], "summary": {}}

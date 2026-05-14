@@ -24,19 +24,20 @@ const StatCard = ({ title, value, color, icon: Icon, sub }) => (
 const MarketingDashboard = () => {
   const { data: leadsResp, isLoading } = useQuery({
     queryKey: ['leads-marketing'],
-    queryFn: () => leadsAPI.getAll({ limit: 2000 }).then(r => r.data),
+    queryFn: () => leadsAPI.getAll({ limit: 70000, skip: 0 }).then(r => r.data),
+    staleTime: 5 * 60 * 1000,
   });
 
   const leads = leadsResp?.leads || [];
 
-  // Lead source breakdown
+  // Lead source breakdown — field is `source`, not `lead_source`
   const sourceMap = {};
   leads.forEach(l => {
-    const src = l.lead_source || 'Unknown';
+    const src = l.source || 'Unknown';
     sourceMap[src] = (sourceMap[src] || 0) + 1;
   });
   const sources = Object.entries(sourceMap)
-    .map(([src, count]) => ({ src, count, conv: leads.filter(l => l.lead_source === src && l.status === 'Enrolled').length }))
+    .map(([src, count]) => ({ src, count, conv: leads.filter(l => l.source === src && l.status === 'Enrolled').length }))
     .sort((a, b) => b.count - a.count);
 
   const totalLeads  = leads.length;
@@ -47,7 +48,7 @@ const MarketingDashboard = () => {
     return d.toDateString() === now.toDateString();
   }).length;
 
-  const totalRev    = leads.filter(l => l.status === 'Enrolled').reduce((s, l) => s + (l.potential_revenue || 0), 0);
+  const totalRev    = leads.filter(l => l.status === 'Enrolled').reduce((s, l) => s + (l.expected_revenue || 0), 0);
   const cpl         = totalLeads > 0 ? Math.round(50000 / totalLeads) : 0; // placeholder budget
 
   // Course popularity
