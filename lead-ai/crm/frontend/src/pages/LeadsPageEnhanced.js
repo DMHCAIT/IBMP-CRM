@@ -318,49 +318,6 @@ const LEAD_NOTE_PLAYBOOK = {
     },
   },
 };
-      '4 Call': 'Waiting for final update',
-    },
-    'After Relocation': {
-      '2 Call': 'Looking for different course',
-      '3 Call': 'Relocating currently',
-      '4 Call': 'Reconnect later',
-    },
-    'After Job Switch': {
-      '2 Call': 'Not interested currently',
-      '3 Call': 'Will reconnect after job change',
-      '4 Call': 'No update received',
-    },
-  },
-  'Not Interested': {
-    'Not Relevant / Course Not Suitable': {
-      '2 Call': 'Do not disturb',
-      '3 Call': 'Course mismatch confirmed',
-      '4 Call': 'Closed lost lead',
-    },
-    'Wrong Expectation from Course': {
-      '2 Call': 'Looking for only clinical training',
-      '3 Call': 'Wants government certification only',
-      '4 Call': 'Not matching expectations',
-    },
-    'Other Academy': {
-      '2 Call': 'Looking for only online course',
-      '3 Call': 'Joined competitor institute',
-      '4 Call': 'Lost to competitor',
-    },
-    'Price Issue': {
-      '2 Call': 'Waiting for funds',
-      '3 Call': 'Budget issue unresolved',
-      '4 Call': 'Permanently lost',
-    },
-  },
-  Spam: {
-    'Other Field / No Health Care / Invalid Number': {
-      '2 Call': 'Dropped the plan',
-      '3 Call': 'Fake inquiry',
-      '4 Call': 'Closed permanently',
-    },
-  },
-};
 
 // Auto-retry countdown shown when the server times out (cold-start)
 const AutoRetryCountdown = ({ onRetry, seconds = 15 }) => {
