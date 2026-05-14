@@ -83,6 +83,11 @@ def _normalise_status_str(raw: str) -> str:
     """Return canonical LeadStatus enum literal for a raw status string."""
     if not raw:
         return 'FRESH'
+    
+    # Handle enum class format: "LeadStatus.NOT_ANSWERING" → "NOT_ANSWERING"
+    if '.' in raw and raw.startswith(('LeadStatus.', 'leadstatus.')):
+        raw = raw.split('.', 1)[1]
+    
     upper = raw.strip().upper()
     if upper in _CANONICAL_STATUSES:
         return upper
