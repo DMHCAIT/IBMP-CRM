@@ -77,7 +77,8 @@ async def update_sla_config(body: dict):
 async def get_sla_compliance():
     """SLA compliance report — how many leads were contacted within the SLA window."""
     try:
-        response = supabase_data.client.table("leads").select("created_at,last_contact_date,status,assigned_to").execute()
+        # Use .range() to bypass 1000 row limit
+        response = supabase_data.client.table("leads").select("created_at,last_contact_date,status,assigned_to").range(0, 99999).execute()
         leads = response.data or []
 
         sla_hours  = _sla_config.get("fresh_response_hours", 24)
@@ -258,7 +259,8 @@ async def clear_cache(cache_name: Optional[str] = None):
 async def trigger_workflows():
     """Manually trigger the workflow engine — marks overdue fresh leads as Follow Up."""
     try:
-        response = supabase_data.client.table("leads").select("lead_id,status,follow_up_date").execute()
+        # Use .range() to bypass 1000 row limit
+        response = supabase_data.client.table("leads").select("lead_id,status,follow_up_date").range(0, 99999).execute()
         all_leads = response.data or []
 
         triggered_count = 0

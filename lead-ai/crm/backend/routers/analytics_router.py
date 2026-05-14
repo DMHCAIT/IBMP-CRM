@@ -97,6 +97,8 @@ async def get_dashboard_stats(request: Request):
             rev_q = rev_q.ilike("assigned_to", _counselor_name)
         if _dept_status:
             rev_q = rev_q.eq("status", _dept_status)
+        # Use .range() to bypass 1000 row limit
+        rev_q = rev_q.range(0, 99999)
         expected_revenue = sum(l.get("expected_revenue", 0) or 0 for l in (rev_q.execute().data or []))
 
         score_q = supabase_data.client.table("leads").select("ai_score").not_.is_("ai_score", "null")
@@ -104,6 +106,8 @@ async def get_dashboard_stats(request: Request):
             score_q = score_q.ilike("assigned_to", _counselor_name)
         if _dept_status:
             score_q = score_q.eq("status", _dept_status)
+        # Use .range() to bypass 1000 row limit
+        score_q = score_q.range(0, 99999)
         scores   = [l.get("ai_score", 0) for l in (score_q.execute().data or []) if l.get("ai_score")]
         avg_score = sum(scores) / len(scores) if scores else 0
 
@@ -138,7 +142,8 @@ async def get_dashboard_stats(request: Request):
 async def revenue_by_country():
     """Revenue breakdown by country."""
     try:
-        response = supabase_data.client.table("leads").select("country,actual_revenue,expected_revenue").execute()
+        # Use .range() to bypass 1000 row limit
+        response = supabase_data.client.table("leads").select("country,actual_revenue,expected_revenue").range(0, 99999).execute()
         country_stats: dict = {}
         for lead in (response.data or []):
             c = lead.get("country") or "Unknown"
@@ -160,7 +165,8 @@ async def revenue_by_country():
 async def conversion_funnel():
     """Conversion funnel stage counts."""
     try:
-        response = supabase_data.client.table("leads").select("last_contact_date,ai_score,status").execute()
+        # Use .range() to bypass 1000 row limit
+        response = supabase_data.client.table("leads").select("last_contact_date,ai_score,status").range(0, 99999).execute()
         leads = response.data or []
         total     = len(leads)
         contacted = sum(1 for l in leads if l.get("last_contact_date"))
@@ -183,9 +189,10 @@ async def conversion_funnel():
 async def campaign_overview():
     """Overall campaign performance metrics."""
     try:
+        # Use .range() to bypass 1000 row limit
         response = supabase_data.client.table("leads").select(
             "campaign_medium,campaign_name,campaign_group,status,ai_score,actual_revenue,expected_revenue,created_at,lead_quality"
-        ).execute()
+        ).range(0, 99999).execute()
         leads = response.data or []
         total      = len(leads)
         total_camp = len({l.get("campaign_name") for l in leads if l.get("campaign_name")})
@@ -233,9 +240,10 @@ async def campaign_overview():
 async def campaign_list():
     """Per-campaign performance list."""
     try:
+        # Use .range() to bypass 1000 row limit
         response = supabase_data.client.table("leads").select(
             "campaign_name,campaign_medium,campaign_group,status,ai_segment,ai_score,actual_revenue,expected_revenue,phone,created_at"
-        ).execute()
+        ).range(0, 99999).execute()
         leads = response.data or []
 
         campaigns: dict = {}
@@ -329,9 +337,10 @@ async def campaign_leads(campaign_name: Optional[str] = None, medium: Optional[s
 async def campaign_detail(campaign_name: str):
     """Single campaign detail with time-series breakdown."""
     try:
+        # Use .range() to bypass 1000 row limit
         response = supabase_data.client.table("leads").select(
             "status,ai_score,actual_revenue,expected_revenue,created_at,country,source"
-        ).eq("campaign_name", campaign_name).execute()
+        ).eq("campaign_name", campaign_name).range(0, 99999).execute()
         leads = response.data or []
         if not leads:
             raise HTTPException(status_code=404, detail="Campaign not found")
@@ -368,7 +377,8 @@ async def campaign_compare(a: Optional[str] = None, b: Optional[str] = None):
         raise HTTPException(status_code=400, detail="Both 'a' and 'b' campaign names are required")
     results = []
     for name in (a, b):
-        resp = supabase_data.client.table("leads").select("status,actual_revenue,ai_score").eq("campaign_name", name).execute()
+        # Use .range() to bypass 1000 row limit
+        resp = supabase_data.client.table("leads").select("status,actual_revenue,ai_score").eq("campaign_name", name).range(0, 99999).execute()
         ldata = resp.data or []
         total = len(ldata)
         conversions = sum(1 for l in ldata if l.get("status") == "Enrolled")
@@ -385,7 +395,8 @@ async def campaign_compare(a: Optional[str] = None, b: Optional[str] = None):
 async def call_timing_analysis():
     """Call timing analysis — best hours/days to contact leads."""
     try:
-        response = supabase_data.client.table("notes").select("created_at,channel").eq("channel", "call").execute()
+        # Use .range() to bypass 1000 row limit
+        response = supabase_data.client.table("notes").select("created_at,channel").eq("channel", "call").range(0, 99999).execute()
         notes = response.data or []
 
         hour_stats: dict  = defaultdict(int)
@@ -416,7 +427,8 @@ async def call_timing_analysis():
 async def get_admin_stats():
     """Admin KPI totals — revenue, leads, conversion rate, month-over-month trends."""
     try:
-        response = supabase_data.client.table("leads").select("status,ai_segment,expected_revenue,created_at").execute()
+        # Use .range() to bypass 1000 row limit
+        response = supabase_data.client.table("leads").select("status,ai_segment,expected_revenue,created_at").range(0, 99999).execute()
         leads = response.data or []
         total    = len(leads)
         enrolled = sum(1 for l in leads if l.get("status") == "Enrolled")
@@ -462,7 +474,8 @@ async def get_team_performance():
     try:
         users     = supabase_data.get_all_users()
         counselors = [u for u in users if u.get("role") == "Counselor"]
-        resp      = supabase_data.client.table("leads").select("assigned_to,status,ai_segment,expected_revenue").execute()
+        # Use .range() to bypass 1000 row limit
+        resp      = supabase_data.client.table("leads").select("assigned_to,status,ai_segment,expected_revenue").range(0, 99999).execute()
         all_leads = resp.data or []
 
         result = []
@@ -490,7 +503,8 @@ async def get_team_performance():
 async def get_funnel_analysis():
     """Status-based funnel breakdown."""
     try:
-        response = supabase_data.client.table("leads").select("status").execute()
+        # Use .range() to bypass 1000 row limit
+        response = supabase_data.client.table("leads").select("status").range(0, 99999).execute()
         stages: dict = {}
         for lead in (response.data or []):
             s = lead.get("status", "Unknown")
@@ -506,9 +520,10 @@ async def get_revenue_trend(days: int = 30):
     """Daily revenue trend for the past N days."""
     try:
         cutoff   = datetime.utcnow() - timedelta(days=days)
+        # Use .range() to bypass 1000 row limit
         response = supabase_data.client.table("leads").select(
             "status,expected_revenue,updated_at,created_at"
-        ).eq("status", "Enrolled").execute()
+        ).eq("status", "Enrolled").range(0, 99999).execute()
         enrolled = [
             l for l in (response.data or [])
             if l.get("updated_at") and datetime.fromisoformat(l["updated_at"].replace("Z", "+00:00")) >= cutoff
@@ -553,7 +568,8 @@ async def get_lead_update_activity(
 async def get_cohort_analysis(cohort_by: str = "week"):
     """Cohort conversion analysis — group leads by creation week/month and track conversions."""
     try:
-        response = supabase_data.client.table("leads").select("status,created_at,updated_at").execute()
+        # Use .range() to bypass 1000 row limit
+        response = supabase_data.client.table("leads").select("status,created_at,updated_at").range(0, 99999).execute()
         leads = response.data or []
 
         cohorts: dict = defaultdict(lambda: {"created": 0, "enrolled": 0})
@@ -584,7 +600,8 @@ async def get_cohort_analysis(cohort_by: str = "week"):
 async def get_conversion_time():
     """Average time from lead creation to enrollment."""
     try:
-        response = supabase_data.client.table("leads").select("created_at,updated_at,status").eq("status", "Enrolled").execute()
+        # Use .range() to bypass 1000 row limit
+        response = supabase_data.client.table("leads").select("created_at,updated_at,status").eq("status", "Enrolled").range(0, 99999).execute()
         enrolled = response.data or []
         times = []
         for lead in enrolled:
@@ -609,7 +626,8 @@ async def get_conversion_time():
 async def get_source_analytics():
     """Lead source performance — volume, conversion rate, revenue per source."""
     try:
-        response = supabase_data.client.table("leads").select("source,status,actual_revenue,expected_revenue,ai_score").execute()
+        # Use .range() to bypass 1000 row limit
+        response = supabase_data.client.table("leads").select("source,status,actual_revenue,expected_revenue,ai_score").range(0, 99999).execute()
         leads = response.data or []
 
         sources: dict = {}

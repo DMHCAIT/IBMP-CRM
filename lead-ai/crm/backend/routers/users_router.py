@@ -251,7 +251,8 @@ async def get_user_performance(user_id: int, days: int = 7):
             raise HTTPException(status_code=404, detail="User not found")
 
         cutoff = datetime.utcnow() - timedelta(days=days)
-        response = supabase_data.client.table("leads").select("status,created_at").eq("assigned_to", user["full_name"]).execute()
+        # Use .range() to bypass 1000 row limit
+        response = supabase_data.client.table("leads").select("status,created_at").eq("assigned_to", user["full_name"]).range(0, 99999).execute()
         leads = [l for l in (response.data or []) if l.get("created_at") and datetime.fromisoformat(l["created_at"].replace("Z", "+00:00")) >= cutoff]
 
         daily: dict = defaultdict(lambda: {"leads": 0, "enrolled": 0})
@@ -282,7 +283,8 @@ async def get_counselors():
         all_users = supabase_data.get_all_users()
         users = [u for u in all_users if u.get("role") in ["Counselor", "Team Leader", "Manager"] and u.get("is_active")]
 
-        all_leads_resp = supabase_data.client.table("leads").select("assigned_to,status").execute()
+        # Use .range() to bypass 1000 row limit
+        all_leads_resp = supabase_data.client.table("leads").select("assigned_to,status").range(0, 99999).execute()
         all_leads = all_leads_resp.data or []
 
         counselors = []
@@ -313,7 +315,8 @@ async def get_counselors():
 async def get_counselor_performance():
     """Live counselor performance computed from leads table."""
     try:
-        response = supabase_data.client.table("leads").select("assigned_to,status,ai_segment").execute()
+        # Use .range() to bypass 1000 row limit
+        response = supabase_data.client.table("leads").select("assigned_to,status,ai_segment").range(0, 99999).execute()
         leads = response.data or []
 
         counselor_stats: dict = {}
@@ -356,7 +359,8 @@ async def get_counselor_workloads():
         users = supabase_data.get_all_users()
         counselors = [u for u in users if u.get("role") in ["Counselor", "Manager", "Team Leader"] and u.get("is_active")]
 
-        all_leads_resp = supabase_data.client.table("leads").select("assigned_to,status,ai_score").execute()
+        # Use .range() to bypass 1000 row limit
+        all_leads_resp = supabase_data.client.table("leads").select("assigned_to,status,ai_score").range(0, 99999).execute()
         leads_data = all_leads_resp.data or []
 
         workloads = []

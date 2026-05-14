@@ -598,11 +598,17 @@ class SupabaseDataLayer:
             return None
     
     def get_dashboard_stats(self, assigned_to: Optional[str] = None) -> Dict[str, Any]:
-        """Get dashboard statistics"""
+        """Get dashboard statistics
+        
+        NOTE: Supabase PostgREST has default 1000 row limit.
+        Use .range() instead of .limit() to bypass this limit and get ALL leads.
+        """
         try:
             query = self.client.table('leads').select('status,ai_segment,actual_revenue,assigned_to')
             if assigned_to:
                 query = query.ilike('assigned_to', assigned_to)
+            # Use .range() to bypass 1000 row limit and get ALL leads (up to 100k)
+            query = query.range(0, 99999)
             all_leads_resp = query.execute()
             leads = all_leads_resp.data if all_leads_resp.data else []
             
