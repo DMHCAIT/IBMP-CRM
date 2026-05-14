@@ -588,8 +588,17 @@ class DBLead(Base):
     campaign_medium = Column(String, nullable=True, index=True)  # facebook, Instagram, google ads, etc.
     campaign_name = Column(String, nullable=True, index=True)    # Specific campaign name
     campaign_group = Column(String, nullable=True)               # Campaign grouping/category
+    campaign_id = Column(String, nullable=True)                  # Meta Ads campaign ID
+    ad_name = Column(String, nullable=True)                      # Ad name from Meta/Google
+    ad_id = Column(String, nullable=True)                        # Meta Ads ad ID
+    adset_name = Column(String, nullable=True)                   # Adset name from Meta
+    adset_id = Column(String, nullable=True)                     # Meta Ads adset ID
+    form_name = Column(String, nullable=True)                    # Lead form name
+    form_id = Column(String, nullable=True)                      # Meta Ads form ID
     lead_quality = Column(String, nullable=True)                 # Hot, Warm, Cold quality rating
     lead_rating = Column(String, nullable=True)                  # Custom rating field
+    is_organic = Column(Boolean, default=False, nullable=True)   # Organic vs paid traffic
+    external_id = Column(String, nullable=True)                  # External system ID (e.g., sheet row ID)
     city = Column(String, nullable=True)                         # Lead's city
     booking_marked_on = Column(DateTime, nullable=True)          # When booking was marked
     first_call_date = Column(DateTime, nullable=True)            # Date of 1st call
@@ -946,8 +955,17 @@ class LeadCreate(BaseModel):
     campaign_medium: Optional[str] = None
     campaign_name: Optional[str] = None
     campaign_group: Optional[str] = None
+    campaign_id: Optional[str] = None
+    ad_name: Optional[str] = None
+    ad_id: Optional[str] = None
+    adset_name: Optional[str] = None
+    adset_id: Optional[str] = None
+    form_name: Optional[str] = None
+    form_id: Optional[str] = None
     lead_quality: Optional[str] = None
     lead_rating: Optional[str] = None
+    is_organic: Optional[bool] = None
+    external_id: Optional[str] = None
     city: Optional[str] = None
     booking_marked_on: Optional[datetime] = None
     first_call_date: Optional[datetime] = None
@@ -955,6 +973,7 @@ class LeadCreate(BaseModel):
     third_call_date: Optional[datetime] = None
     lead_owner: Optional[str] = None
     stage: Optional[str] = None
+    created_at: Optional[datetime] = None
 
     @field_validator('status', mode='before')
     @classmethod
@@ -1009,8 +1028,17 @@ class LeadUpdate(BaseModel):
     campaign_medium: Optional[str] = None
     campaign_name: Optional[str] = None
     campaign_group: Optional[str] = None
+    campaign_id: Optional[str] = None
+    ad_name: Optional[str] = None
+    ad_id: Optional[str] = None
+    adset_name: Optional[str] = None
+    adset_id: Optional[str] = None
+    form_name: Optional[str] = None
+    form_id: Optional[str] = None
     lead_quality: Optional[str] = None
     lead_rating: Optional[str] = None
+    is_organic: Optional[bool] = None
+    external_id: Optional[str] = None
     city: Optional[str] = None
     booking_marked_on: Optional[datetime] = None
     first_call_date: Optional[datetime] = None

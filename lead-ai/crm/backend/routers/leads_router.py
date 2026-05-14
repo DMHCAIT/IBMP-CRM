@@ -170,6 +170,8 @@ async def create_lead(request: Request, background_tasks: BackgroundTasks, body:
     if not isinstance(body, LeadCreate):
         body = LeadCreate(**body)
 
+    initial_note = (body.notes or "").strip() if getattr(body, "notes", None) else ""
+
     if _counselor_name:
         body.assigned_to = _counselor_name
 
@@ -251,6 +253,13 @@ async def create_lead(request: Request, background_tasks: BackgroundTasks, body:
                 description=f"Lead created from {body.source}",
                 created_by="System",
             )
+            if initial_note:
+                supabase_data.create_note(
+                    lead_id=int(created["id"]),
+                    content=initial_note,
+                    channel="manual",
+                    created_by=_counselor_name or "System",
+                )
 
         invalidate_cache(STATS_CACHE)
         invalidate_cache(LEAD_CACHE)
@@ -679,6 +688,12 @@ async def update_lead(lead_id: str, request: Request, background_tasks: Backgrou
     _counselor_name = _get_counselor_name(request)
 
     try:
+        raw_note_content = None
+        if isinstance(body, dict):
+            raw_note_content = body.pop("notes", None)
+        else:
+            raw_note_content = getattr(body, "notes", None)
+
         if _counselor_name:
             existing = supabase_data.get_lead_by_id(lead_id)
             if not existing:
@@ -698,6 +713,28 @@ async def update_lead(lead_id: str, request: Request, background_tasks: Backgrou
         updated_lead = supabase_data.update_lead(lead_id, update_data)
         if not updated_lead:
             raise HTTPException(status_code=404, detail="Lead not found")
+
+        # Persist note text from the edit form as a timeline note.
+        # (LeadUpdate schema intentionally excludes a direct `notes` field.)
+        note_text = (str(raw_note_content).strip() if raw_note_content is not None else "")
+        if note_text and (existing_for_diff or {}).get("id"):
+            try:
+                _note_actor = "System"
+                ah = request.headers.get("Authorization", "")
+                if ah.startswith("Bearer "):
+                    td = decode_access_token(ah.split(" ", 1)[1])
+                    if td:
+                        u = supabase_data.get_user_by_email(td.email)
+                        if u:
+                            _note_actor = u.get("full_name") or td.email or "System"
+                supabase_data.create_note(
+                    lead_id=int((existing_for_diff or {})["id"]),
+                    content=note_text,
+                    channel="manual",
+                    created_by=_note_actor,
+                )
+            except Exception as note_exc:
+                logger.warning(f"Could not save note for lead {lead_id}: {note_exc}")
 
         # Activity log
         try:
